@@ -1,0 +1,12 @@
+# Signing configuration for release builds.
+#
+# Copy this file to "retro.properties" (in the repository root) and fill in your own values.
+# retro.properties is git-ignored. NEVER commit it, your keystore, or any passwords.
+#
+# storeFile can be an absolute path, or relative to the app/ module directory.
+# If retro.properties is missing, release builds are signed with the debug key instead.
+
+storeFile=/path/to/your-release-keystore.jks
+storePassword=your-store-password
+keyAlias=your-key-alias
+keyPassword=your-key-password

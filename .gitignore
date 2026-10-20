@@ -41,3 +41,10 @@ app/normal/release/
 /app/release/
 
 .kotlin
+
+# Signing secrets (custom build)
+retro.properties
+*.jks
+*.keystore
+keystore.properties
+public.properties
