@@ -22,7 +22,9 @@ import java.text.Collator
 data class Artist(
     val id: Long,
     val albums: List<Album>,
-    val isAlbumArtist: Boolean = false
+    val isAlbumArtist: Boolean = false,
+    /** Explicit display name, used for artists split out of multi-artist tags ("A; B"). */
+    val displayName: String? = null
 ) {
     constructor(
         artistName: String,
@@ -34,8 +36,9 @@ data class Artist(
 
     var name: String = "-"
         get() {
-            val name = if (isAlbumArtist) getAlbumArtistName()
-            else getArtistName()
+            val name = displayName
+                ?: if (isAlbumArtist) getAlbumArtistName()
+                else getArtistName()
             return when {
                 MusicUtil.isVariousArtists(name) ->
                     VARIOUS_ARTISTS_DISPLAY_NAME

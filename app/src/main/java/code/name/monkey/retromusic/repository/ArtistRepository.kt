@@ -19,6 +19,8 @@ import code.name.monkey.retromusic.ALBUM_ARTIST
 import code.name.monkey.retromusic.helper.SortOrder
 import code.name.monkey.retromusic.model.Album
 import code.name.monkey.retromusic.model.Artist
+import code.name.monkey.retromusic.model.Song
+import code.name.monkey.retromusic.util.ArtistSeparator
 import code.name.monkey.retromusic.util.PreferenceUtil
 import java.text.Collator
 
@@ -64,6 +66,10 @@ class RealArtistRepository(
             return Artist(Artist.VARIOUS_ARTISTS_ID, albums)
         }
 
+        if (ArtistSeparator.isSyntheticArtistId(artistId)) {
+            return splitArtist(artistId)
+        }
+
         val songs = songRepository.songs(
             songRepository.makeSongCursor(
                 AudioColumns.ARTIST_ID + "=?",
@@ -71,7 +77,57 @@ class RealArtistRepository(
                 getSongLoaderSortOrder()
             )
         )
-        return Artist(artistId, albumRepository.splitIntoAlbums(songs))
+        val artistName = songs.firstOrNull()?.artistName
+        // Songs tagged "This Artist; Other Artist" belong to this artist as well
+        val extraSongs = multiArtistSongsFor(artistName, AudioColumns.ARTIST) { it.artistName }
+            .filter { it.artistId != artistId }
+        if (extraSongs.isEmpty()) {
+            return Artist(artistId, albumRepository.splitIntoAlbums(songs))
+        }
+        return Artist(
+            artistId,
+            albumRepository.splitIntoAlbums(songs + extraSongs),
+            displayName = artistName
+        )
+    }
+
+    /**
+     * Artist that only exists inside multi-artist tags ("Artist A; Artist B"), addressed by
+     * [ArtistSeparator.syntheticArtistId]. Includes single-artist songs with the same name too.
+     */
+    private fun splitArtist(artistId: Long): Artist {
+        val allSongs = songRepository.songs(
+            songRepository.makeSongCursor(null, null, getSongLoaderSortOrder())
+        )
+        val artistName = allSongs.asSequence()
+            .flatMap { ArtistSeparator.splitLibrary(it.artistName).asSequence() }
+            .firstOrNull { ArtistSeparator.syntheticArtistId(it) == artistId }
+            ?: return Artist(artistId, emptyList())
+        val songs = allSongs.filter { ArtistSeparator.containsArtist(it.artistName, artistName) }
+        return Artist(artistId, albumRepository.splitIntoAlbums(songs), displayName = artistName)
+    }
+
+    /**
+     * Songs whose [column] tag lists several artists separated by ";" and includes [artistName].
+     */
+    private fun multiArtistSongsFor(
+        artistName: String?,
+        column: String,
+        tag: (Song) -> String?
+    ): List<Song> {
+        if (artistName.isNullOrBlank() || ArtistSeparator.isMultiArtist(artistName)) {
+            return emptyList()
+        }
+        return songRepository.songs(
+            songRepository.makeSongCursor(
+                "$column LIKE ? AND $column LIKE ?",
+                arrayOf("%$artistName%", "%;%"),
+                getSongLoaderSortOrder()
+            )
+        ).filter {
+            val value = tag(it)
+            ArtistSeparator.isMultiArtist(value) && ArtistSeparator.containsArtist(value, artistName)
+        }
     }
 
     override fun albumArtist(artistName: String): Artist {
@@ -96,7 +152,18 @@ class RealArtistRepository(
                 getSongLoaderSortOrder()
             )
         )
-        return Artist(artistName, albumRepository.splitIntoAlbums(songs), true)
+        // Albums whose album artist is "This Artist; Other Artist" belong to this artist as well
+        val extraSongs = multiArtistSongsFor(artistName, "album_artist") { it.albumArtist }
+        if (extraSongs.isEmpty()) {
+            return Artist(artistName, albumRepository.splitIntoAlbums(songs), true)
+        }
+        val allSongs = songs + extraSongs
+        return Artist(
+            allSongs.first().artistId,
+            albumRepository.splitIntoAlbums(allSongs),
+            true,
+            displayName = artistName
+        )
     }
 
     override fun artists(): List<Artist> {
@@ -141,6 +208,11 @@ class RealArtistRepository(
             )
         )
         val artists = splitIntoAlbumArtists(albumRepository.splitIntoAlbums(songs))
+            // Drop co-artists that were only pulled in by a matching "A; B" album artist
+            .filter { artist ->
+                artist.albums.any { !ArtistSeparator.isMultiArtist(it.albumArtist) } ||
+                        artist.name.contains(query, ignoreCase = true)
+            }
         return sortArtists(artists)
     }
 
@@ -153,11 +225,19 @@ class RealArtistRepository(
             )
         )
         val artists = splitIntoArtists(albumRepository.splitIntoAlbums(songs))
+            // Drop co-artists that were only pulled in by a matching "A; B" tag
+            .filter {
+                !ArtistSeparator.isSyntheticArtistId(it.id) ||
+                        it.name.contains(query, ignoreCase = true)
+            }
         return sortArtists(artists)
     }
 
 
     private fun splitIntoAlbumArtists(albums: List<Album>): List<Artist> {
+        if (albums.any { ArtistSeparator.isMultiArtist(it.albumArtist) }) {
+            return splitIntoMultiAlbumArtists(albums)
+        }
         return albums.groupBy { it.albumArtist }
             .filter {
                 !it.key.isNullOrEmpty()
@@ -177,9 +257,69 @@ class RealArtistRepository(
     }
 
 
+    /**
+     * Album artists when some album artist tags list several artists ("A; B"): such albums
+     * are listed under each of those artists. Other albums are grouped exactly as before.
+     */
+    private fun splitIntoMultiAlbumArtists(albums: List<Album>): List<Artist> {
+        val groups = LinkedHashMap<String, MutableList<Album>>()
+        val keyByName = HashMap<String, String>()
+        val multiAlbums = ArrayList<Album>()
+        for (album in albums) {
+            val albumArtist = album.albumArtist
+            if (ArtistSeparator.isMultiArtist(albumArtist)) {
+                multiAlbums.add(album)
+                continue
+            }
+            if (albumArtist.isNullOrEmpty()) continue
+            groups.getOrPut(albumArtist) { mutableListOf() }.add(album)
+            keyByName.putIfAbsent(ArtistSeparator.key(albumArtist), albumArtist)
+        }
+        for (album in multiAlbums) {
+            for (name in ArtistSeparator.splitLibrary(album.albumArtist)) {
+                val key = keyByName.getOrPut(ArtistSeparator.key(name)) { name }
+                groups.getOrPut(key) { mutableListOf() }.add(album)
+            }
+        }
+        return groups.map { (name, currentAlbums) ->
+            if (name == Artist.VARIOUS_ARTISTS_DISPLAY_NAME) {
+                Artist(Artist.VARIOUS_ARTISTS_ID, currentAlbums, true)
+            } else {
+                Artist(currentAlbums[0].artistId, currentAlbums, true, displayName = name)
+            }
+        }
+    }
+
     fun splitIntoArtists(albums: List<Album>): List<Artist> {
-        return albums.groupBy { it.artistId }
-            .map { Artist(it.key, it.value) }
+        if (albums.none { album -> album.songs.any { ArtistSeparator.isMultiArtist(it.artistName) } }) {
+            return albums.groupBy { it.artistId }
+                .map { Artist(it.key, it.value) }
+        }
+        // Some songs are tagged "Artist A; Artist B": list them under each artist.
+        // Songs with a single artist are grouped exactly as before.
+        val groups = LinkedHashMap<Long, MutableList<Song>>()
+        val names = HashMap<Long, String>()
+        val idByName = HashMap<String, Long>()
+        val multiArtistSongs = ArrayList<Song>()
+        for (album in albums) {
+            val (multi, single) = album.songs.partition { ArtistSeparator.isMultiArtist(it.artistName) }
+            multiArtistSongs.addAll(multi)
+            if (single.isEmpty()) continue
+            val id = single.first().artistId
+            groups.getOrPut(id) { mutableListOf() }.addAll(single)
+            names.putIfAbsent(id, single.first().artistName)
+            single.forEach { idByName.putIfAbsent(ArtistSeparator.key(it.artistName), it.artistId) }
+        }
+        for (song in multiArtistSongs) {
+            for (name in ArtistSeparator.splitLibrary(song.artistName)) {
+                val id = idByName[ArtistSeparator.key(name)] ?: ArtistSeparator.syntheticArtistId(name)
+                groups.getOrPut(id) { mutableListOf() }.add(song)
+                names.putIfAbsent(id, name)
+            }
+        }
+        return groups.map { (id, songs) ->
+            Artist(id, albumRepository.splitIntoAlbums(songs, false), displayName = names[id])
+        }
     }
 
     private fun sortArtists(artists: List<Artist>): List<Artist> {

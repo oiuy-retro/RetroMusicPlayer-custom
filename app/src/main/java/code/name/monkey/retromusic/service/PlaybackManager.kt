@@ -191,6 +191,10 @@ class PlaybackManager(val context: Context) {
         }
     }
 
+    fun setPlayerGain(gain: Float) {
+        playback?.setPlayerGain(gain)
+    }
+
     fun setPlaybackSpeedPitch(playbackSpeed: Float, playbackPitch: Float) {
         playback?.setPlaybackSpeedPitch(playbackSpeed, playbackPitch)
     }

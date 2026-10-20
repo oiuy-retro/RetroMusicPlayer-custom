@@ -97,7 +97,7 @@
 
         <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESwitchPreference
             android:layout="@layout/list_item_view_switch"
-            app:defaultValue="false"
+            app:defaultValue="true"
             app:icon="@drawable/ic_volume_up"
             app:key="toggle_volume"
             app:summary="@string/pref_summary_toggle_volume"

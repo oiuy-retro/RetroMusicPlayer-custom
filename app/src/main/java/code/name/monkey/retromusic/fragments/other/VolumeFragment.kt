@@ -14,35 +14,32 @@
  */
 package code.name.monkey.retromusic.fragments.other
 
+import android.content.SharedPreferences
 import android.graphics.Color
 import android.graphics.PorterDuff
-import android.media.AudioManager
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.content.getSystemService
 import androidx.fragment.app.Fragment
 import code.name.monkey.appthemehelper.ThemeStore
+import code.name.monkey.retromusic.PLAYER_VOLUME
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.databinding.FragmentVolumeBinding
 import code.name.monkey.retromusic.extensions.applyColor
-import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import code.name.monkey.retromusic.util.PreferenceUtil
-import code.name.monkey.retromusic.volume.AudioVolumeObserver
-import code.name.monkey.retromusic.volume.OnAudioVolumeChangedListener
 import com.google.android.material.slider.Slider
 
-class VolumeFragment : Fragment(), Slider.OnChangeListener, OnAudioVolumeChangedListener,
-    View.OnClickListener {
+/**
+ * Now playing volume slider. Controls Retro's own player volume (0..100 %, saved in
+ * [PreferenceUtil.playerVolume]) instead of the system media volume, so Retro can be turned
+ * down relative to other apps. Hardware volume buttons keep changing the system volume.
+ */
+class VolumeFragment : Fragment(), Slider.OnChangeListener, View.OnClickListener,
+    SharedPreferences.OnSharedPreferenceChangeListener {
 
     private var _binding: FragmentVolumeBinding? = null
     private val binding get() = _binding!!
-
-    private var audioVolumeObserver: AudioVolumeObserver? = null
-
-    private val audioManager: AudioManager
-        get() = requireContext().getSystemService()!!
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -56,56 +53,69 @@ class VolumeFragment : Fragment(), Slider.OnChangeListener, OnAudioVolumeChanged
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setTintable(ThemeStore.accentColor(requireContext()))
+        binding.volumeSeekBar.valueFrom = 0f
+        binding.volumeSeekBar.valueTo = MAX_VOLUME.toFloat()
+        binding.volumeSeekBar.stepSize = 1f
+        binding.volumeSeekBar.setLabelFormatter { "${it.toInt()}%" }
+        binding.volumeSeekBar.addOnChangeListener(this)
         binding.volumeDown.setOnClickListener(this)
         binding.volumeUp.setOnClickListener(this)
     }
 
     override fun onResume() {
         super.onResume()
-        if (audioVolumeObserver == null) {
-            audioVolumeObserver = AudioVolumeObserver(requireActivity())
-        }
-        audioVolumeObserver?.register(AudioManager.STREAM_MUSIC, this)
-
-        val audioManager = audioManager
-        binding.volumeSeekBar.valueTo =
-            audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).toFloat()
-        binding.volumeSeekBar.value =
-            audioManager.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat()
-        binding.volumeSeekBar.addOnChangeListener(this)
+        // Reflect the saved level (it may have been changed on another screen or theme)
+        showVolume(PreferenceUtil.playerVolume)
+        PreferenceUtil.registerOnSharedPreferenceChangedListener(this)
     }
 
-    override fun onAudioVolumeChanged(currentVolume: Int, maxVolume: Int) {
-        if (_binding != null) {
-            binding.volumeSeekBar.valueTo = maxVolume.toFloat()
-            binding.volumeSeekBar.value = currentVolume.toFloat()
-            binding.volumeDown.setImageResource(if (currentVolume == 0) R.drawable.ic_volume_off else R.drawable.ic_volume_down)
-        }
+    override fun onPause() {
+        super.onPause()
+        PreferenceUtil.unregisterOnSharedPreferenceChangedListener(this)
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        audioVolumeObserver?.unregister()
         _binding = null
     }
 
+    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
+        if (key == PLAYER_VOLUME) showVolume(PreferenceUtil.playerVolume)
+    }
+
+    private fun showVolume(volume: Int) {
+        val binding = _binding ?: return
+        val value = volume.coerceIn(0, MAX_VOLUME).toFloat()
+        if (binding.volumeSeekBar.value != value) {
+            binding.volumeSeekBar.value = value
+        }
+        updateIcon(volume)
+    }
+
+    private fun updateIcon(volume: Int) {
+        _binding?.volumeDown?.setImageResource(
+            if (volume == 0) R.drawable.ic_volume_off else R.drawable.ic_volume_down
+        )
+    }
+
     override fun onValueChange(slider: Slider, value: Float, fromUser: Boolean) {
-        val audioManager = audioManager
-        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, value.toInt(), 0)
-        setPauseWhenZeroVolume(value < 1f)
-        binding.volumeDown.setImageResource(if (value == 0f) R.drawable.ic_volume_off else R.drawable.ic_volume_down)
+        val volume = value.toInt()
+        if (fromUser && volume != PreferenceUtil.playerVolume) {
+            // MusicService listens for this preference and applies the gain right away
+            PreferenceUtil.playerVolume = volume
+        }
+        updateIcon(volume)
     }
 
     override fun onClick(view: View) {
-        val audioManager = audioManager
-        when (view.id) {
-            R.id.volumeDown -> audioManager.adjustStreamVolume(
-                AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, 0
-            )
-            R.id.volumeUp -> audioManager.adjustStreamVolume(
-                AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, 0
-            )
-        }
+        val current = PreferenceUtil.playerVolume
+        val newVolume = when (view.id) {
+            R.id.volumeDown -> current - STEP
+            R.id.volumeUp -> current + STEP
+            else -> return
+        }.coerceIn(0, MAX_VOLUME)
+        PreferenceUtil.playerVolume = newVolume
+        showVolume(newVolume)
     }
 
     fun tintWhiteColor() {
@@ -119,12 +129,6 @@ class VolumeFragment : Fragment(), Slider.OnChangeListener, OnAudioVolumeChanged
         binding.volumeSeekBar.applyColor(color)
     }
 
-    private fun setPauseWhenZeroVolume(pauseWhenZeroVolume: Boolean) {
-        if (PreferenceUtil.isPauseOnZeroVolume)
-            if (MusicPlayerRemote.isPlaying && pauseWhenZeroVolume)
-                MusicPlayerRemote.pauseSong()
-    }
-
     fun setTintableColor(color: Int) {
         binding.volumeDown.setColorFilter(color, PorterDuff.Mode.SRC_IN)
         binding.volumeUp.setColorFilter(color, PorterDuff.Mode.SRC_IN)
@@ -133,6 +137,9 @@ class VolumeFragment : Fragment(), Slider.OnChangeListener, OnAudioVolumeChanged
     }
 
     companion object {
+        private const val MAX_VOLUME = 100
+        private const val STEP = 5
+
         fun newInstance(): VolumeFragment {
             return VolumeFragment()
         }

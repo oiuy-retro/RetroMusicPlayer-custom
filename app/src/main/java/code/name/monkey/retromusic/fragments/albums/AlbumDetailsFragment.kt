@@ -61,6 +61,7 @@ import code.name.monkey.retromusic.model.Artist
 import code.name.monkey.retromusic.network.Result
 import code.name.monkey.retromusic.network.model.LastFmAlbum
 import code.name.monkey.retromusic.repository.RealRepository
+import code.name.monkey.retromusic.util.ArtistSeparator
 import code.name.monkey.retromusic.util.*
 import com.bumptech.glide.Glide
 import com.google.android.material.shape.MaterialShapeDrawable
@@ -120,7 +121,7 @@ class AlbumDetailsFragment : AbsMainActivityFragment(R.layout.fragment_album_det
             binding.artistImage.transitionName = if (albumArtistExists) {
                 album.albumArtist
             } else {
-                album.artistId.toString()
+                ArtistSeparator.navigationArtistId(album.safeGetFirstSong()).toString()
             }
         }
 
@@ -135,12 +136,13 @@ class AlbumDetailsFragment : AbsMainActivityFragment(R.layout.fragment_album_det
                         FragmentNavigatorExtras(artistView to album.albumArtist.toString())
                     )
             } else {
+                val artistNavigationId = ArtistSeparator.navigationArtistId(album.safeGetFirstSong())
                 findActivityNavController(R.id.fragment_container)
                     .navigate(
                         R.id.artistDetailsFragment,
-                        bundleOf(EXTRA_ARTIST_ID to album.artistId),
+                        bundleOf(EXTRA_ARTIST_ID to artistNavigationId),
                         null,
-                        FragmentNavigatorExtras(artistView to album.artistId.toString())
+                        FragmentNavigatorExtras(artistView to artistNavigationId.toString())
                     )
             }
 

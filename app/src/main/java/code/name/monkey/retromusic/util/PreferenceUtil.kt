@@ -71,6 +71,7 @@ import code.name.monkey.retromusic.NEXT_SLEEP_TIMER_ELAPSED_REALTIME
 import code.name.monkey.retromusic.NOW_PLAYING_SCREEN_ID
 import code.name.monkey.retromusic.PAUSE_HISTORY
 import code.name.monkey.retromusic.PAUSE_ON_ZERO_VOLUME
+import code.name.monkey.retromusic.PLAYER_VOLUME
 import code.name.monkey.retromusic.PLAYBACK_PITCH
 import code.name.monkey.retromusic.PLAYBACK_SPEED
 import code.name.monkey.retromusic.PLAYLIST_GRID_SIZE
@@ -331,7 +332,7 @@ object PreferenceUtil {
 
     val isVolumeVisibilityMode
         get() = sharedPreferences.getBoolean(
-            TOGGLE_VOLUME, false
+            TOGGLE_VOLUME, true
         )
 
     var isInitializedBlacklist
@@ -804,6 +805,14 @@ object PreferenceUtil {
             .getInt(CROSS_FADE_DURATION, 0)
 
     val isCrossfadeEnabled get() = crossFadeDuration > 0
+
+    /**
+     * Retro's own player volume in percent (0..100), independent of the system media volume.
+     * 100 (the default, also for existing installs) is normal, unattenuated playback.
+     */
+    var playerVolume: Int
+        get() = sharedPreferences.getInt(PLAYER_VOLUME, 100).coerceIn(0, 100)
+        set(value) = sharedPreferences.edit { putInt(PLAYER_VOLUME, value.coerceIn(0, 100)) }
 
     val materialYou
         get() = sharedPreferences.getBoolean(MATERIAL_YOU, VersionUtils.hasS())

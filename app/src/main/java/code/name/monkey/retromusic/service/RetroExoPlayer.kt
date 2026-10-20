@@ -43,6 +43,7 @@ class RetroExoPlayer(context: Context) : AudioManagerPlayback(context), Player.L
 
     init {
         player.setWakeMode(C.WAKE_MODE_LOCAL)
+        player.volume = scaledVolume(requestedVolume)
     }
 
     /**
@@ -184,7 +185,8 @@ class RetroExoPlayer(context: Context) : AudioManagerPlayback(context), Player.L
 
     override fun setVolume(vol: Float): Boolean {
         return try {
-            player.volume = vol
+            requestedVolume = vol
+            player.volume = scaledVolume(vol)
             true
         } catch (e: Exception) {
             false
@@ -231,6 +233,7 @@ class RetroExoPlayer(context: Context) : AudioManagerPlayback(context), Player.L
             .setAudioAttributes(audioAttributes, false)
             .build()
         player.setWakeMode(C.WAKE_MODE_LOCAL)
+        player.volume = scaledVolume(requestedVolume)
         context.showToast(R.string.unplayable_file)
     }
 
@@ -238,6 +241,14 @@ class RetroExoPlayer(context: Context) : AudioManagerPlayback(context), Player.L
         if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
             callbacks?.onTrackWentToNext()
             return
+        }
+    }
+
+    override fun onPlayerGainChanged() {
+        try {
+            player.volume = scaledVolume(requestedVolume)
+        } catch (e: Exception) {
+            logE(e)
         }
     }
 

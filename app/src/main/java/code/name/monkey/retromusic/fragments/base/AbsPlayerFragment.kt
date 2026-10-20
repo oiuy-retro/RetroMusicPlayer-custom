@@ -69,6 +69,7 @@ import code.name.monkey.retromusic.model.Song
 import code.name.monkey.retromusic.repository.RealRepository
 import code.name.monkey.retromusic.service.MusicService
 import code.name.monkey.retromusic.util.NavigationUtil
+import code.name.monkey.retromusic.util.ArtistSeparator
 import code.name.monkey.retromusic.util.PreferenceUtil
 import code.name.monkey.retromusic.util.RingtoneManager
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -413,7 +414,11 @@ abstract class AbsPlayerFragment(@LayoutRes layout: Int) : AbsMusicServiceFragme
     }
 }
 
-fun goToArtist(activity: Activity) {
+/**
+ * Opens the current song's artist. For songs tagged "Artist A; Artist B" this opens
+ * [artistName] if given (e.g. the artist the user tapped), otherwise the first artist.
+ */
+fun goToArtist(activity: Activity, artistName: String? = null) {
     if (activity !is MainActivity) return
     val song = MusicPlayerRemote.currentSong
     activity.apply {
@@ -430,7 +435,7 @@ fun goToArtist(activity: Activity) {
 
         findNavController(R.id.fragment_container).navigate(
             R.id.artistDetailsFragment,
-            bundleOf(EXTRA_ARTIST_ID to song.artistId)
+            bundleOf(EXTRA_ARTIST_ID to ArtistSeparator.navigationArtistId(song, artistName))
         )
     }
 }

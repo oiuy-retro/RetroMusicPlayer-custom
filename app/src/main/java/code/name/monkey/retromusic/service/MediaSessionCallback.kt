@@ -29,6 +29,9 @@ import code.name.monkey.retromusic.repository.*
 import code.name.monkey.retromusic.service.MusicService.Companion.CYCLE_REPEAT
 import code.name.monkey.retromusic.service.MusicService.Companion.TOGGLE_FAVORITE
 import code.name.monkey.retromusic.service.MusicService.Companion.TOGGLE_SHUFFLE
+import code.name.monkey.retromusic.service.MusicService.Companion.PLAYER_VOLUME_DOWN
+import code.name.monkey.retromusic.service.MusicService.Companion.PLAYER_VOLUME_STEP
+import code.name.monkey.retromusic.service.MusicService.Companion.PLAYER_VOLUME_UP
 import code.name.monkey.retromusic.util.MusicUtil
 import code.name.monkey.retromusic.util.logD
 import code.name.monkey.retromusic.util.logE
@@ -197,6 +200,8 @@ class MediaSessionCallback(
             TOGGLE_FAVORITE -> {
                 musicService.toggleFavorite()
             }
+            PLAYER_VOLUME_DOWN -> musicService.adjustPlayerVolume(-PLAYER_VOLUME_STEP)
+            PLAYER_VOLUME_UP -> musicService.adjustPlayerVolume(PLAYER_VOLUME_STEP)
             else -> {
                 logE("Unsupported action: $action")
             }

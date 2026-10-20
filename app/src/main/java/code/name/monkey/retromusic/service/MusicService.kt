@@ -62,6 +62,7 @@ import code.name.monkey.retromusic.BLURRED_ALBUM_ART
 import code.name.monkey.retromusic.BuildConfig
 import code.name.monkey.retromusic.CROSS_FADE_DURATION
 import code.name.monkey.retromusic.PLAYBACK_PITCH
+import code.name.monkey.retromusic.PLAYER_VOLUME
 import code.name.monkey.retromusic.PLAYBACK_SPEED
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.TOGGLE_HEADSET
@@ -103,6 +104,7 @@ import code.name.monkey.retromusic.util.PreferenceUtil.isLockScreen
 import code.name.monkey.retromusic.util.PreferenceUtil.isPauseOnZeroVolume
 import code.name.monkey.retromusic.util.PreferenceUtil.playbackPitch
 import code.name.monkey.retromusic.util.PreferenceUtil.playbackSpeed
+import code.name.monkey.retromusic.util.PreferenceUtil
 import code.name.monkey.retromusic.util.PreferenceUtil.registerOnSharedPreferenceChangedListener
 import code.name.monkey.retromusic.util.PreferenceUtil.unregisterOnSharedPreferenceChangedListener
 import code.name.monkey.retromusic.volume.AudioVolumeObserver
@@ -680,6 +682,12 @@ class MusicService : MediaBrowserServiceCompat(),
                 playbackManager.setPlaybackSpeedPitch(playbackSpeed, playbackPitch)
             }
 
+            PLAYER_VOLUME -> {
+                playbackManager.setPlayerGain(PlayerVolume.currentGain)
+                // Refresh the media controls (volume-down icon shows "off" at 0 %)
+                updateMediaSessionPlaybackState()
+            }
+
             CROSS_FADE_DURATION -> {
                 val progress = songProgressMillis
                 val wasPlaying = isPlaying
@@ -720,6 +728,8 @@ class MusicService : MediaBrowserServiceCompat(),
 
                     ACTION_PENDING_QUIT -> pendingQuit = true
                     TOGGLE_FAVORITE -> toggleFavorite()
+                    PLAYER_VOLUME_DOWN -> adjustPlayerVolume(-PLAYER_VOLUME_STEP)
+                    PLAYER_VOLUME_UP -> adjustPlayerVolume(PLAYER_VOLUME_STEP)
                 }
             }
         }
@@ -1388,27 +1398,39 @@ class MusicService : MediaBrowserServiceCompat(),
         appWidgetCircle.notifyChange(this, what)
     }
 
+    /**
+     * Media session custom actions (shown by Android 13+ system media controls, Android Auto,
+     * etc.): player volume down / up instead of repeat / shuffle. Repeat and shuffle stay
+     * available in the app UI.
+     */
     private fun setCustomAction(stateBuilder: PlaybackStateCompat.Builder) {
-        var repeatIcon = R.drawable.ic_repeat // REPEAT_MODE_NONE
-        if (repeatMode == REPEAT_MODE_THIS) {
-            repeatIcon = R.drawable.ic_repeat_one
-        } else if (repeatMode == REPEAT_MODE_ALL) {
-            repeatIcon = R.drawable.ic_repeat_white_circle
+        val volumeDownIcon =
+            if (PreferenceUtil.playerVolume == 0) R.drawable.ic_volume_off else R.drawable.ic_volume_down
+        stateBuilder.addCustomAction(
+            PlaybackStateCompat.CustomAction.Builder(
+                PLAYER_VOLUME_DOWN, getString(R.string.action_player_volume_down), volumeDownIcon
+            )
+                .build()
+        )
+        stateBuilder.addCustomAction(
+            PlaybackStateCompat.CustomAction.Builder(
+                PLAYER_VOLUME_UP, getString(R.string.action_player_volume_up), R.drawable.ic_volume_up
+            )
+                .build()
+        )
+    }
+
+    /**
+     * Steps Retro's own player volume (the now playing slider value, not the system volume)
+     * by [deltaPercent], clamped to 0..100. Saving the preference applies the gain to the
+     * player and updates the slider and media controls through the preference listeners.
+     */
+    fun adjustPlayerVolume(deltaPercent: Int) {
+        val current = PreferenceUtil.playerVolume
+        val newVolume = (current + deltaPercent).coerceIn(0, 100)
+        if (newVolume != current) {
+            PreferenceUtil.playerVolume = newVolume
         }
-        stateBuilder.addCustomAction(
-            PlaybackStateCompat.CustomAction.Builder(
-                CYCLE_REPEAT, getString(R.string.action_cycle_repeat), repeatIcon
-            )
-                .build()
-        )
-        val shuffleIcon =
-            if (getShuffleMode() == SHUFFLE_MODE_NONE) R.drawable.ic_shuffle_off_circled else R.drawable.ic_shuffle_on_circled
-        stateBuilder.addCustomAction(
-            PlaybackStateCompat.CustomAction.Builder(
-                TOGGLE_SHUFFLE, getString(R.string.action_toggle_shuffle), shuffleIcon
-            )
-                .build()
-        )
     }
 
     private fun setupMediaSession() {
@@ -1471,6 +1493,9 @@ class MusicService : MediaBrowserServiceCompat(),
         const val CYCLE_REPEAT = "$RETRO_MUSIC_PACKAGE_NAME.cyclerepeat"
         const val TOGGLE_SHUFFLE = "$RETRO_MUSIC_PACKAGE_NAME.toggleshuffle"
         const val TOGGLE_FAVORITE = "$RETRO_MUSIC_PACKAGE_NAME.togglefavorite"
+        const val PLAYER_VOLUME_DOWN = "$RETRO_MUSIC_PACKAGE_NAME.playervolumedown"
+        const val PLAYER_VOLUME_UP = "$RETRO_MUSIC_PACKAGE_NAME.playervolumeup"
+        const val PLAYER_VOLUME_STEP = 10
         const val SAVED_POSITION = "POSITION"
         const val SAVED_POSITION_IN_TRACK = "POSITION_IN_TRACK"
         const val SAVED_SHUFFLE_MODE = "SHUFFLE_MODE"

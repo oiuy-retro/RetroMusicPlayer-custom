@@ -44,7 +44,7 @@ class ArtistImageFetcher(
             if (!MusicUtil.isArtistNameUnknown(model.artist.name) &&
                 PreferenceUtil.isAllowedToDownloadMetadata(context)
             ) {
-                val artists = model.artist.name.split(",", "&")
+                val artists = model.artist.name.split(",", "&", ";").map { it.trim() }
                 response = deezerService.getArtistImage(artists[0])
                 response?.enqueue(object : Callback<DeezerResponse> {
                     override fun onResponse(

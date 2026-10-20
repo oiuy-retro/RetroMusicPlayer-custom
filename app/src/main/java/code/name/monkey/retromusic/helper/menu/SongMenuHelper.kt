@@ -36,6 +36,7 @@ import code.name.monkey.retromusic.interfaces.IPaletteColorHolder
 import code.name.monkey.retromusic.model.Song
 import code.name.monkey.retromusic.providers.BlacklistStore
 import code.name.monkey.retromusic.repository.RealRepository
+import code.name.monkey.retromusic.util.ArtistSeparator
 import code.name.monkey.retromusic.util.MusicUtil
 import code.name.monkey.retromusic.util.RingtoneManager
 import kotlinx.coroutines.CoroutineScope
@@ -118,7 +119,7 @@ object SongMenuHelper : KoinComponent {
             R.id.action_go_to_artist -> {
                 activity.findNavController(R.id.fragment_container).navigate(
                     R.id.artistDetailsFragment,
-                    bundleOf(EXTRA_ARTIST_ID to song.artistId)
+                    bundleOf(EXTRA_ARTIST_ID to ArtistSeparator.navigationArtistId(song))
                 )
                 return true
             }

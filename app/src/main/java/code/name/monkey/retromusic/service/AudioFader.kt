@@ -15,6 +15,8 @@ class AudioFader {
             context: Context,
             fadeInMp: MediaPlayer,
             fadeOutMp: MediaPlayer,
+            /* Target volume (player gain x ducking etc.) that the cross-fade ramps between */
+            targetVolume: () -> Float,
             endAction: (animator: Animator) -> Unit, /* Code to run when Animator Ends*/
         ): Animator? {
             // Get Global animator scale
@@ -28,11 +30,11 @@ class AudioFader {
             return ValueAnimator.ofFloat(0f, 1f).apply {
                 this.duration = duration.toLong()
                 addUpdateListener { animation: ValueAnimator ->
-                    fadeInMp.setVolume(
-                        animation.animatedValue as Float, animation.animatedValue as Float
-                    )
-                    fadeOutMp.setVolume(1 - animation.animatedValue as Float,
-                        1 - animation.animatedValue as Float)
+                    val target = targetVolume()
+                    val fadeIn = animation.animatedValue as Float * target
+                    val fadeOut = (1 - animation.animatedValue as Float) * target
+                    fadeInMp.setVolume(fadeIn, fadeIn)
+                    fadeOutMp.setVolume(fadeOut, fadeOut)
                 }
                 doOnEnd {
                     endAction(it)

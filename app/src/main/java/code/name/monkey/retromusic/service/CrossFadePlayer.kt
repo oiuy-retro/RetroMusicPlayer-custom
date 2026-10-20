@@ -121,7 +121,9 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context),
     override fun setVolume(vol: Float): Boolean {
         cancelFade()
         return try {
-            getCurrentPlayer()?.setVolume(vol, vol)
+            requestedVolume = vol
+            val scaled = scaledVolume(vol)
+            getCurrentPlayer()?.setVolume(scaled, scaled)
             true
         } catch (e: IllegalStateException) {
             e.printStackTrace()
@@ -249,9 +251,20 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context),
         }
     }
 
+    override fun onPlayerGainChanged() {
+        // While cross-fading the animator picks up the new gain on its next frame
+        if (crossFadeAnimator != null) return
+        try {
+            val scaled = scaledVolume(requestedVolume)
+            getCurrentPlayer()?.setVolume(scaled, scaled)
+        } catch (e: IllegalStateException) {
+            e.printStackTrace()
+        }
+    }
+
     private fun crossFade(fadeInMp: MediaPlayer, fadeOutMp: MediaPlayer) {
         isCrossFading = true
-        crossFadeAnimator = createFadeAnimator(context, fadeInMp, fadeOutMp) {
+        crossFadeAnimator = createFadeAnimator(context, fadeInMp, fadeOutMp, { scaledVolume(requestedVolume) }) {
             crossFadeAnimator = null
             durationListener.start()
             isCrossFading = false
@@ -342,6 +355,8 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context),
     }
 
     private fun switchPlayer() {
+        // Start the incoming track silent; the cross-fade animator ramps it up to the player gain
+        getNextPlayer()?.setVolume(0f, 0f)
         getNextPlayer()?.start()
         crossFade(getNextPlayer()!!, getCurrentPlayer()!!)
         currentPlayer =
@@ -385,6 +400,9 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context),
             player.playbackParams =
                 PlaybackParams().setSpeed(playbackSpeed).setPitch(playbackPitch)
 
+            // Apply the player gain to freshly (re)initialised players
+            val scaled = scaledVolume(requestedVolume)
+            player.setVolume(scaled, scaled)
             player.setOnPreparedListener {
                 player.setOnPreparedListener(null)
                 completion(true)

@@ -50,6 +50,12 @@ interface Playback {
 
     fun setVolume(vol: Float): Boolean
 
+    /**
+     * Sets the app-level player gain (0..1, 1 = unity) from the now playing volume slider.
+     * It is multiplied with the volume passed to [setVolume] (fades, ducking, crossfade).
+     */
+    fun setPlayerGain(gain: Float) {}
+
     fun setAudioSessionId(sessionId: Int): Boolean
 
     fun setCrossFadeDuration(duration: Int)

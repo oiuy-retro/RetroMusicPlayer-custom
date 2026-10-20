@@ -19,6 +19,26 @@ import code.name.monkey.retromusic.util.PreferenceUtil.isAudioFocusEnabled
 abstract class AudioManagerPlayback(val context: Context) : Playback {
 
     private val audioManager: AudioManager? = context.getSystemService()
+
+    /** App-level gain from the now playing volume slider (0..1, 1 = unity). */
+    @Volatile
+    protected var playerGain: Float = PlayerVolume.currentGain
+        private set
+
+    /** Last volume requested through [setVolume] (fades / ducking), before [playerGain]. */
+    @Volatile
+    protected var requestedVolume: Float = Volume.NORMAL
+
+    /** [vol] scaled by the player gain, so fades and ducking never exceed the user's level. */
+    protected fun scaledVolume(vol: Float): Float = (vol * playerGain).coerceIn(0f, 1f)
+
+    override fun setPlayerGain(gain: Float) {
+        playerGain = gain.coerceIn(0f, 1f)
+        onPlayerGainChanged()
+    }
+
+    /** Re-apply the current volume after [playerGain] changed. */
+    protected abstract fun onPlayerGainChanged()
     private var isPausedByTransientLossOfFocus = false
     private val audioFocusListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
         when (focusChange) {
