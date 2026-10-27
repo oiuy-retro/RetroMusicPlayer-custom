@@ -189,7 +189,18 @@ still applies.
     its playback starts. There's no periodic polling on API 26+.
   - After the debounce, if media is still active or focus isn't granted (Android 15+ can refuse
     focus to background apps), Retro checks again once a second, up to 5 times, then waits for
-    the next playback change. Logcat tag `ResumeAfterFocus` logs each step.
+    the next playback change.
+  - Optional session watch (`MediaSessionWatcher`): if the user grants notification access to
+    the empty `MediaStateListenerService` ("Detect paused videos" in Audio settings), other
+    media counts as active only while another app's media session is playing or buffering
+    (`MediaSessionManager.getActiveSessions` plus controller callbacks). This catches a paused
+    browser video, whose audio stream stays open so `isMusicActive` stays true. Without access,
+    `isMusicActive` is used. Notification contents are never read and nothing is stored.
+  - While a resume is pending, `MusicService.onUnbind` doesn't call `stopSelf()` and the service
+    stays in the foreground (Android 17 refuses audio focus to background apps without one).
+  - Temporary diagnostic: `ResumeLog` keeps the last 200 events in memory and in
+    `files/resume_log.txt` (also logcat tag `ResumeAfterFocus`). "Copy resume log" in Audio
+    settings copies them. Remove once the feature is confirmed working.
   - API 24-25: the same check runs once a second, starting 1 s after the loss. Retro resumes
     after 1 idle check (3 before other media has been seen).
   - When the delay ends, Retro checks once more, then requests focus. If that's granted, it

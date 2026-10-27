@@ -307,6 +307,17 @@
                 android:resource="@xml/app_widget_circle_info" />
         </receiver>
 
+        <!-- Only used to read other apps' media playback state for Resume after other media -->
+        <service
+            android:name=".service.MediaStateListenerService"
+            android:exported="false"
+            android:label="@string/pref_title_resume_after_focus_loss"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
         <service
             android:name=".service.MusicService"
             android:exported="true"

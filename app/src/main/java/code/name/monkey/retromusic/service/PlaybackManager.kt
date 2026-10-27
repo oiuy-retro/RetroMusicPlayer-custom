@@ -90,7 +90,7 @@ class PlaybackManager(val context: Context) {
         } else {
             // An explicit pause while already paused (e.g. after another app took focus)
             // must also cancel any pending automatic resume.
-            (playback as? AudioManagerPlayback)?.clearPendingFocusResume()
+            (playback as? AudioManagerPlayback)?.clearPendingFocusResume("pause while already paused")
         }
     }
 
@@ -194,6 +194,9 @@ class PlaybackManager(val context: Context) {
             CrossFadePlayer(context)
         }
     }
+
+    val isResumePending: Boolean
+        get() = (playback as? AudioManagerPlayback)?.isResumePending == true
 
     fun onFocusResumeSettingsChanged() {
         (playback as? AudioManagerPlayback)?.onFocusResumeSettingsChanged()

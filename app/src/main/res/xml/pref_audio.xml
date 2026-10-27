@@ -23,6 +23,18 @@
         android:summary="@string/pref_summary_resume_after_focus_loss"
         android:title="@string/pref_title_resume_after_focus_loss" />
 
+    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreference
+        android:key="media_state_access"
+        android:layout="@layout/list_item_view"
+        android:summary="@string/pref_summary_media_state_access"
+        android:title="@string/pref_title_media_state_access" />
+
+    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreference
+        android:key="copy_resume_log"
+        android:layout="@layout/list_item_view"
+        android:summary="@string/pref_summary_copy_resume_log"
+        android:title="@string/pref_title_copy_resume_log" />
+
     <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
         android:defaultValue="0"
         android:key="cross_fade_duration"

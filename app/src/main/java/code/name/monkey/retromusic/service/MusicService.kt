@@ -309,6 +309,7 @@ class MusicService : MediaBrowserServiceCompat(),
     private var isForeground = false
     override fun onCreate() {
         super.onCreate()
+        ResumeLog.init(this)
         val powerManager = getSystemService<PowerManager>()
         if (powerManager != null) {
             wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, javaClass.name)
@@ -380,6 +381,7 @@ class MusicService : MediaBrowserServiceCompat(),
         if (audioDeviceCallback != null) {
             getSystemService<AudioManager>()?.unregisterAudioDeviceCallback(audioDeviceCallback!!)
         }
+        ResumeLog.d("service destroyed (resumePending=${playbackManager.isResumePending})")
         mediaSession?.isActive = false
         quit()
         releaseResources()
@@ -723,7 +725,10 @@ class MusicService : MediaBrowserServiceCompat(),
                         play()
                     }
 
-                    ACTION_PAUSE -> pause()
+                    ACTION_PAUSE -> {
+                        ResumeLog.d("pause intent (headset/notification/noisy)")
+                        pause()
+                    }
                     ACTION_PLAY -> play()
                     ACTION_PLAY_PLAYLIST -> playFromPlaylist(intent)
                     ACTION_REWIND -> back(true)
@@ -789,7 +794,11 @@ class MusicService : MediaBrowserServiceCompat(),
     }
 
     override fun onUnbind(intent: Intent): Boolean {
-        if (!isPlaying) {
+        // Don't stop while waiting to resume after other media: stopping would cancel the
+        // resume, and on Android 17 a stopped service can't get audio focus back.
+        if (playbackManager.isResumePending) {
+            ResumeLog.d("onUnbind: kept running, resume pending")
+        } else if (!isPlaying) {
             stopSelf()
         }
         return true
@@ -1207,7 +1216,7 @@ class MusicService : MediaBrowserServiceCompat(),
     private fun startForegroundOrNotify() {
         if (isQuitting) return
         if (playingNotification != null && currentSong.id != -1L) {
-            if (isForeground && !isPlaying) {
+            if (isForeground && !isPlaying && !playbackManager.isResumePending) {
                 // This makes the notification dismissible
                 // We can't call stopForeground(false) on A12 though, which may result in crashes
                 // when we call startForeground after that e.g. when Alarm goes off,
