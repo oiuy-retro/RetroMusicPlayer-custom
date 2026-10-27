@@ -12,6 +12,9 @@ shared as APK files. For changes in the app itself, see the
 ## [Unreleased]
 
 ### Added
+- "Resume after other media" setting in Audio, under "Always play" (off by default). When it's on
+  and Always play is off, Retro pauses when another app starts playing media and resumes once
+  that media stops. A manual pause or stop cancels the automatic resume. versionCode 10706.
 - Documentation for the custom build: README, this changelog, `docs/BUILDING.md`,
   `docs/CUSTOM_CHANGES.md`, `docs/UPDATING_FROM_UPSTREAM.md` and `retro.properties.example`.
   The upstream README is now in `docs/UPSTREAM_README.md`.

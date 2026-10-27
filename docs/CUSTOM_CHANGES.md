@@ -30,6 +30,8 @@ git diff a7d4d05 volume-artists -- app/
 | `util/PreferenceUtil.kt`, `Constants.kt` | The `toggle_volume` default is now `true`. New `player_volume` int preference (default 100). |
 | `res/xml/pref_now_playing_screen.xml` | `toggle_volume` `defaultValue="true"`. |
 | `res/values/strings.xml` | `action_player_volume_down` / `action_player_volume_up` (English only). |
+| `service/AudioManagerPlayback.kt`, `service/PlaybackManager.kt` | Resume after other media (see below). |
+| `res/xml/pref_audio.xml`, `res/values/strings.xml` | `resume_after_focus_loss` switch and its English strings. |
 | `app/build.gradle.kts` | `versionCode` bumps only. |
 
 ## Player volume (gain)
@@ -165,3 +167,24 @@ with that raw id shows the combined entry as upstream did.
 
 `Artist.name` now prefers `displayName`. The unknown-artist and Various Artists display mapping
 still applies.
+
+## Resume after other media
+
+- Preference `resume_after_focus_loss` (`PreferenceUtil.isResumeAfterFocusLossEnabled`), default
+  off, shown directly under Always play (`manage_audio_focus`). Always play is unchanged.
+- It only acts on `AUDIOFOCUS_LOSS` (the permanent loss most video and music apps cause) while
+  Always play is off. `AUDIOFOCUS_LOSS_TRANSIENT` and ducking are handled as upstream does.
+- On that loss, `AudioManagerPlayback` pauses as before. If it was playing and the setting is on,
+  it sets `isPausedByLossOfFocus` and keeps its focus request (it doesn't call `abandonFocus()`).
+- Android removes an app from the focus stack after a permanent loss, so `AUDIOFOCUS_GAIN`
+  usually doesn't come back. A main-thread check therefore starts 3 s after the loss and runs
+  every second. Once `AudioManager.isMusicActive` has been false (and the audio mode is
+  `MODE_NORMAL`) for 3 checks in a row, it requests focus again. If that's granted, it calls
+  `start()` and `onPlayStateChanged()`, like the transient path. If focus is denied (for example
+  during a call), it keeps waiting. If `AUDIOFOCUS_GAIN` does arrive, it resumes the same way.
+- `start()`, `pause()` and `stop()` all call `clearPendingFocusResume()`, so a manual play,
+  pause or stop cancels the pending resume. `PlaybackManager.pause()` also clears it when
+  playback is already paused. The check stops too if the setting is turned off or Always play is
+  turned on.
+- Limitations: an app that keeps playing (or keeps an active media stream) means no resume. The
+  check can't tell which app is playing. If Android stops the paused service, nothing resumes.

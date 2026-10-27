@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioManager
+import android.os.Handler
+import android.os.Looper
 import androidx.annotation.CallSuper
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
@@ -15,6 +17,7 @@ import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.extensions.showToast
 import code.name.monkey.retromusic.service.playback.Playback
 import code.name.monkey.retromusic.util.PreferenceUtil.isAudioFocusEnabled
+import code.name.monkey.retromusic.util.PreferenceUtil.isResumeAfterFocusLossEnabled
 
 abstract class AudioManagerPlayback(val context: Context) : Playback {
 
@@ -40,9 +43,68 @@ abstract class AudioManagerPlayback(val context: Context) : Playback {
     /** Re-apply the current volume after [playerGain] changed. */
     protected abstract fun onPlayerGainChanged()
     private var isPausedByTransientLossOfFocus = false
+
+    /**
+     * True while Retro is paused because another app took audio focus permanently
+     * (AUDIOFOCUS_LOSS) and "Resume after other media" is on. Cleared by any explicit
+     * start / pause / stop, so a pause by the user is never undone automatically.
+     */
+    @Volatile
+    private var isPausedByLossOfFocus = false
+
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    /** Consecutive checks in which no other media was playing. */
+    private var idleChecks = 0
+
+    /**
+     * Android removes an app from the focus stack after a permanent focus loss, so
+     * AUDIOFOCUS_GAIN usually never comes back. While waiting, poll whether any media is
+     * still playing (Retro itself is paused, so this only sees other apps) and resume once
+     * it has been silent for [RESUME_IDLE_CHECKS] checks in a row.
+     */
+    private val resumeCheck = object : Runnable {
+        override fun run() {
+            if (!isPausedByLossOfFocus) return
+            val am = audioManager
+            if (am == null || isPlaying || isAudioFocusEnabled || !isResumeAfterFocusLossEnabled) {
+                clearPendingFocusResume()
+                return
+            }
+            val otherMediaActive = am.isMusicActive || am.mode != AudioManager.MODE_NORMAL
+            idleChecks = if (otherMediaActive) 0 else idleChecks + 1
+            if (idleChecks >= RESUME_IDLE_CHECKS) {
+                // Only resume if focus is actually granted (not during a call, for example).
+                if (requestFocus()) {
+                    resumeAfterFocusLoss()
+                    return
+                }
+                idleChecks = 0
+            }
+            mainHandler.postDelayed(this, RESUME_CHECK_INTERVAL_MS)
+        }
+    }
+
+    private fun resumeAfterFocusLoss() {
+        clearPendingFocusResume()
+        if (!isPlaying && isInitialized) {
+            start()
+            callbacks?.onPlayStateChanged()
+        }
+    }
+
+    /** Forget a pending automatic resume after a permanent focus loss. */
+    fun clearPendingFocusResume() {
+        isPausedByLossOfFocus = false
+        idleChecks = 0
+        mainHandler.removeCallbacks(resumeCheck)
+    }
     private val audioFocusListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
         when (focusChange) {
             AudioManager.AUDIOFOCUS_GAIN -> {
+                if (isPausedByLossOfFocus) {
+                    resumeAfterFocusLoss()
+                }
                 if (!isPlaying && isPausedByTransientLossOfFocus) {
                     start()
                     callbacks?.onPlayStateChanged()
@@ -54,8 +116,16 @@ abstract class AudioManagerPlayback(val context: Context) : Playback {
             AudioManager.AUDIOFOCUS_LOSS -> {
                 // Lost focus for an unbounded amount of time: stop playback and release media playback
                 if (!isAudioFocusEnabled) {
+                    val wasPlaying = isPlaying
                     pause()
                     callbacks?.onPlayStateChanged()
+                    if (wasPlaying && isResumeAfterFocusLossEnabled) {
+                        // Keep the focus request (don't abandon it) and wait for the other
+                        // media to stop. pause() above cleared any earlier pending resume.
+                        isPausedByLossOfFocus = true
+                        idleChecks = 0
+                        mainHandler.postDelayed(resumeCheck, RESUME_FIRST_CHECK_DELAY_MS)
+                    }
                 }
             }
 
@@ -136,6 +206,7 @@ abstract class AudioManagerPlayback(val context: Context) : Playback {
 
     @CallSuper
     override fun start(): Boolean {
+        clearPendingFocusResume()
         if (!requestFocus()) {
             context.showToast(R.string.audio_focus_denied)
         }
@@ -145,14 +216,24 @@ abstract class AudioManagerPlayback(val context: Context) : Playback {
 
     @CallSuper
     override fun stop() {
+        clearPendingFocusResume()
         abandonFocus()
         unregisterBecomingNoisyReceiver()
     }
 
     @CallSuper
     override fun pause(): Boolean {
+        clearPendingFocusResume()
         unregisterBecomingNoisyReceiver()
         return true
+    }
+
+    private companion object {
+        /** Wait before the first check, so the other app has started its playback. */
+        const val RESUME_FIRST_CHECK_DELAY_MS = 3000L
+        const val RESUME_CHECK_INTERVAL_MS = 1000L
+        /** Seconds of silence from other apps before resuming (bridges short gaps). */
+        const val RESUME_IDLE_CHECKS = 3
     }
 
     object Volume {
