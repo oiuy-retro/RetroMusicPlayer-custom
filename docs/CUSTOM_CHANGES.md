@@ -179,15 +179,17 @@ still applies.
 - Android removes an app from the focus stack after a permanent loss, so `AUDIOFOCUS_GAIN`
   usually doesn't come back. Instead, Retro watches whether other media is still playing:
   - API 26+: while a resume is pending, an `AudioManager.AudioPlaybackCallback` is registered
-    (on the main thread) and also checked once right after registering. Other media counts as
-    active if any reported `AudioPlaybackConfiguration` has usage `USAGE_MEDIA` / `USAGE_GAME` or
-    content type music / movie, if `AudioManager.isMusicActive` is true, or if the audio mode
-    isn't `MODE_NORMAL` (call or ringtone). Apps only receive configs for players that are
-    started, and Retro is paused, so every reported media config belongs to another app.
+    (on the main thread) and also checked once right after registering. The callback is only a
+    change trigger: the config list also holds paused and stopped players (Retro's own and the
+    video app's), and apps can't read a player's state. Other media counts as active if
+    `AudioManager.isMusicActive` is true or the audio mode isn't `MODE_NORMAL` (call or ringtone).
   - When nothing else is playing, a 1 s debounce starts. Any new playback cancels it, so the
     gap between two videos doesn't trigger a resume. Until other media has been seen after the
     loss, the delay is 3 s instead, because the other app usually takes focus a moment before
     its playback starts. There's no periodic polling on API 26+.
+  - After the debounce, if media is still active or focus isn't granted (Android 15+ can refuse
+    focus to background apps), Retro checks again once a second, up to 5 times, then waits for
+    the next playback change. Logcat tag `ResumeAfterFocus` logs each step.
   - API 24-25: the same check runs once a second, starting 1 s after the loss. Retro resumes
     after 1 idle check (3 before other media has been seen).
   - When the delay ends, Retro checks once more, then requests focus. If that's granted, it
