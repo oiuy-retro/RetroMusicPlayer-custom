@@ -162,5 +162,9 @@ const val SWIPE_ANYWHERE_NOW_PLAYING = "swipe_anywhere_now_playing"
 const val PAUSE_HISTORY = "pause_history"
 const val MANAGE_AUDIO_FOCUS = "manage_audio_focus"
 const val RESUME_AFTER_FOCUS_LOSS = "resume_after_focus_loss"
+const val RESUME_TIMED_FALLBACK = "resume_timed_fallback"
+
+/** Delay in half-second steps (1..40 = 0.5..20 s), default 6 = 3 s. */
+const val RESUME_TIMED_FALLBACK_DELAY = "resume_timed_fallback_delay"
 const val SWIPE_DOWN_DISMISS = "swipe_to_dismiss"
 const val ENABLE_SEARCH_PLAYLIST= "enable_search_playlist"

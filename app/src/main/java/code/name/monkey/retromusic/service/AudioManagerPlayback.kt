@@ -20,6 +20,8 @@ import code.name.monkey.retromusic.extensions.showToast
 import code.name.monkey.retromusic.service.playback.Playback
 import code.name.monkey.retromusic.util.PreferenceUtil.isAudioFocusEnabled
 import code.name.monkey.retromusic.util.PreferenceUtil.isResumeAfterFocusLossEnabled
+import code.name.monkey.retromusic.util.PreferenceUtil.isResumeTimedFallbackEnabled
+import code.name.monkey.retromusic.util.PreferenceUtil.resumeTimedFallbackDelayMs
 
 abstract class AudioManagerPlayback(val context: Context) : Playback {
 
@@ -95,6 +97,11 @@ abstract class AudioManagerPlayback(val context: Context) : Playback {
         ResumeLog.d("permanent focus loss, waiting for other media to stop")
         isPausedByLossOfFocus = true
         focusRetries = 0
+        if (isResumeTimedFallbackEnabled) {
+            val delay = resumeTimedFallbackDelayMs
+            ResumeLog.d("timed fallback in ${delay}ms")
+            mainHandler.postDelayed(timedResume, delay)
+        }
         mainHandler.post {
             sessionWatcher.start()
             ResumeLog.d("session watch ${if (sessionWatcher.isAvailable) "on" else "off (no notification access)"}")
@@ -157,6 +164,7 @@ abstract class AudioManagerPlayback(val context: Context) : Playback {
 
     private fun onOtherMediaChanged(configs: List<AudioPlaybackConfiguration>) {
         if (!shouldKeepWaiting()) return
+        if (timedFallbackDue) return // already resuming on the timer
         mainHandler.removeCallbacks(debouncedResume)
         focusRetries = 0
         val active = isOtherMediaActive(configs)
@@ -178,7 +186,7 @@ abstract class AudioManagerPlayback(val context: Context) : Playback {
     private val debouncedResume = Runnable {
         if (!shouldKeepWaiting()) return@Runnable
         val am = audioManager ?: return@Runnable
-        if (isOtherMediaActive(am.activePlaybackConfigurations)) {
+        if (!timedFallbackDue && isOtherMediaActive(am.activePlaybackConfigurations)) {
             // isMusicActive can lag a moment behind a stop; check again a few times.
             otherMediaSeen = true
             retryLater("other media still active")
@@ -196,6 +204,19 @@ abstract class AudioManagerPlayback(val context: Context) : Playback {
     }
 
     private var focusRetries = 0
+
+    /** Set when the timed fallback fired: resume even if other media still looks active. */
+    @Volatile
+    private var timedFallbackDue = false
+
+    private val timedResume = Runnable {
+        if (!shouldKeepWaiting() || !isResumeTimedFallbackEnabled) return@Runnable
+        ResumeLog.d("timed fallback fired, resuming regardless of other media")
+        timedFallbackDue = true
+        focusRetries = 0
+        mainHandler.removeCallbacks(debouncedResume)
+        debouncedResume.run()
+    }
 
     private fun retryLater(reason: String) {
         if (focusRetries < MAX_RETRIES) {
@@ -246,6 +267,8 @@ abstract class AudioManagerPlayback(val context: Context) : Playback {
         idleChecks = 0
         mainHandler.removeCallbacks(debouncedResume)
         mainHandler.removeCallbacks(legacyResumeCheck)
+        mainHandler.removeCallbacks(timedResume)
+        timedFallbackDue = false
         mainHandler.post { sessionWatcher.stop() }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             synchronized(focusResumeLock) {

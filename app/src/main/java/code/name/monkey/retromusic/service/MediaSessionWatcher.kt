@@ -7,7 +7,6 @@ import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
 import android.os.Handler
 import android.provider.Settings
-import android.service.notification.NotificationListenerService
 import androidx.core.content.getSystemService
 
 /**
@@ -105,10 +104,3 @@ class MediaSessionWatcher(
         }
     }
 }
-
-/**
- * Empty listener: it only exists so the user can grant notification access, which Android
- * requires before an app may read other apps' media session playback state. It ignores all
- * notifications.
- */
-class MediaStateListenerService : NotificationListenerService()
