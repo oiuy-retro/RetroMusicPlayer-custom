@@ -22,13 +22,14 @@ git diff a7d4d05 volume-artists -- app/
 | `fragments/other/VolumeFragment.kt` | Rewritten: the slider edits `PreferenceUtil.playerVolume` instead of `STREAM_MUSIC`. |
 | `service/PlayerVolume.kt` (new) | Maps percent → linear gain. |
 | `service/playback/Playback.kt` | New `setPlayerGain(gain)` with a no-op default, so `CastPlayer` doesn't need changes. |
-| `service/AudioManagerPlayback.kt` | Holds `playerGain` / `requestedVolume`, `scaledVolume()`, and abstract `onPlayerGainChanged()`. |
+| `service/AudioManagerPlayback.kt` | Holds `playerGain` / `requestedVolume`, `scaledVolume()`, and abstract `onPlayerGainChanged()`. Skips audio focus while "Always play" is on (see below). |
 | `service/RetroExoPlayer.kt`, `service/CrossFadePlayer.kt`, `service/AudioFader.kt` | Apply the gain (see below). |
 | `service/PlaybackManager.kt` | `setPlayerGain()` forwards to the active playback. |
 | `service/MusicService.kt` | Applies the gain on preference change. Volume custom actions, `adjustPlayerVolume()`, intent actions. |
 | `service/MediaSessionCallback.kt` | Handles the volume custom actions. |
-| `util/PreferenceUtil.kt`, `Constants.kt` | The `toggle_volume` default is now `true`. New `player_volume` int preference (default 100). |
+| `util/PreferenceUtil.kt`, `Constants.kt` | The `toggle_volume` and `manage_audio_focus` defaults are now `true`. New `player_volume` int preference (default 100). |
 | `res/xml/pref_now_playing_screen.xml` | `toggle_volume` `defaultValue="true"`. |
+| `res/xml/pref_audio.xml` | `manage_audio_focus` ("Always play") `defaultValue="true"`. |
 | `res/values/strings.xml` | `action_player_volume_down` / `action_player_volume_up` (English only). |
 | `app/build.gradle.kts` | `versionCode` bumps only. |
 
@@ -89,6 +90,24 @@ Per implementation:
 `onResume()`, so every theme's slider shows the same level. It no longer uses `AudioManager` or
 `AudioVolumeObserver`. The Circle theme still has its own system-volume dial, and
 `MusicService`'s "pause on zero volume" still observes the system volume.
+
+## Playing alongside other apps (audio focus)
+
+Upstream's "Always play" switch (`manage_audio_focus`, `PreferenceUtil.isAudioFocusEnabled`) was
+off by default and only skipped the pause on `AUDIOFOCUS_LOSS`. Retro still requested
+`AUDIOFOCUS_GAIN`, still paused on `AUDIOFOCUS_LOSS_TRANSIENT`, and on Android 12+ the system
+fades out and mutes a media app that loses focus, so Retro stopped under other apps either way.
+
+In the custom build the switch defaults to `true`. While it's on:
+
+- `AudioManagerPlayback.start()` calls `abandonFocus()` instead of `requestFocus()`, so Retro
+  holds no audio focus and other apps' focus requests don't affect it.
+- The focus listener also ignores `AUDIOFOCUS_LOSS_TRANSIENT`, for the case where focus was taken
+  before the switch was turned on.
+- ExoPlayer is already created with `handleAudioFocus = false`, so it doesn't request focus itself.
+- Unplugging headphones (`ACTION_AUDIO_BECOMING_NOISY`) still pauses, as upstream.
+
+With the switch off, behavior is the same as upstream.
 
 ## Media session volume actions
 

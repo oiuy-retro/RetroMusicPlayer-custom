@@ -63,6 +63,7 @@ abstract class AudioManagerPlayback(val context: Context) : Playback {
                 // Lost focus for a short time, but we have to stop
                 // playback. We don't release the media playback because playback
                 // is likely to resume
+                if (isAudioFocusEnabled) return@OnAudioFocusChangeListener
                 val wasPlaying = isPlaying
                 pause()
                 callbacks?.onPlayStateChanged()
@@ -136,7 +137,11 @@ abstract class AudioManagerPlayback(val context: Context) : Playback {
 
     @CallSuper
     override fun start(): Boolean {
-        if (!requestFocus()) {
+        if (isAudioFocusEnabled) {
+            // "Always play": don't take audio focus, so other apps can't make the system
+            // pause, duck or (Android 12+) fade out and mute Retro.
+            abandonFocus()
+        } else if (!requestFocus()) {
             context.showToast(R.string.audio_focus_denied)
         }
         registerBecomingNoisyReceiver()

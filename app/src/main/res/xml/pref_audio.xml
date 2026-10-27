@@ -10,7 +10,7 @@
         android:title="@string/pref_title_audio_fade" />
 
     <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESwitchPreference
-        android:defaultValue="false"
+        android:defaultValue="true"
         android:key="manage_audio_focus"
         android:layout="@layout/list_item_view_switch"
         android:summary="@string/pref_summary_manage_audio_focus"

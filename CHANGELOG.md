@@ -11,6 +11,13 @@ shared as APK files. For changes in the app itself, see the
 
 ## [Unreleased]
 
+### Fixed
+- Retro now keeps playing when another app (e.g. a video) starts playing audio. The existing
+  "Always play" setting (Settings → Audio, `manage_audio_focus`) is now on by default. While it's
+  on, Retro doesn't request audio focus, so other apps and the system no longer pause, duck or
+  mute it. Before, the setting was off by default and, even when on, Retro still paused for
+  short focus requests. If you had switched it off before, it stays off. versionCode 10706.
+
 ### Added
 - Documentation for the custom build: README, this changelog, `docs/BUILDING.md`,
   `docs/CUSTOM_CHANGES.md`, `docs/UPDATING_FROM_UPSTREAM.md` and `retro.properties.example`.

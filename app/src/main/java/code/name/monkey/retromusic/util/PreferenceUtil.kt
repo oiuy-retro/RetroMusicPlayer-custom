@@ -433,7 +433,7 @@ object PreferenceUtil {
 
     val isAudioFocusEnabled
         get() = sharedPreferences.getBoolean(
-            MANAGE_AUDIO_FOCUS, false
+            MANAGE_AUDIO_FOCUS, true
         )
 
     val isLockScreen get() = sharedPreferences.getBoolean(LOCK_SCREEN, false)

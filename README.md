@@ -127,8 +127,9 @@ existing install, always sign with the **same keystore** as before. Keep a backu
 - The **Circle** theme's round dial still controls the system volume. **Tiny** has no slider.
 - "Pause on zero volume" still watches the *system* volume. Moving Retro's slider to 0 mutes Retro
   but doesn't pause it.
-- If another app asks Retro to duck, ducking is applied on top of your slider level. Keeping Retro
-  playing under a video also needs the "manage audio focus" setting enabled.
+- Retro keeps playing under other apps' audio only while "Always play" (Settings → Audio) is on.
+  It's on by default. With it off, Retro pauses or ducks for other apps as upstream does, and
+  ducking is applied on top of your slider level.
 - Android 13+ shows at most two extra media-control buttons. Some phone makers' media panels or
   older Android versions may not show them at all. Favorite isn't in the system media controls,
   same as upstream.
