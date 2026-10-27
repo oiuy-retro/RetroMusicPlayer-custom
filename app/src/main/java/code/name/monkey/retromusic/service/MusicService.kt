@@ -62,7 +62,9 @@ import code.name.monkey.retromusic.BLURRED_ALBUM_ART
 import code.name.monkey.retromusic.BuildConfig
 import code.name.monkey.retromusic.CROSS_FADE_DURATION
 import code.name.monkey.retromusic.PLAYBACK_PITCH
+import code.name.monkey.retromusic.MANAGE_AUDIO_FOCUS
 import code.name.monkey.retromusic.PLAYER_VOLUME
+import code.name.monkey.retromusic.RESUME_AFTER_FOCUS_LOSS
 import code.name.monkey.retromusic.PLAYBACK_SPEED
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.TOGGLE_HEADSET
@@ -680,6 +682,11 @@ class MusicService : MediaBrowserServiceCompat(),
             PLAYBACK_SPEED, PLAYBACK_PITCH -> {
                 updateMediaSessionPlaybackState()
                 playbackManager.setPlaybackSpeedPitch(playbackSpeed, playbackPitch)
+            }
+
+            MANAGE_AUDIO_FOCUS, RESUME_AFTER_FOCUS_LOSS -> {
+                // Stop waiting to resume if the new settings no longer allow it
+                playbackManager.onFocusResumeSettingsChanged()
             }
 
             PLAYER_VOLUME -> {

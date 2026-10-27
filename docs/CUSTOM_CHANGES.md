@@ -30,7 +30,7 @@ git diff a7d4d05 volume-artists -- app/
 | `util/PreferenceUtil.kt`, `Constants.kt` | The `toggle_volume` default is now `true`. New `player_volume` int preference (default 100). |
 | `res/xml/pref_now_playing_screen.xml` | `toggle_volume` `defaultValue="true"`. |
 | `res/values/strings.xml` | `action_player_volume_down` / `action_player_volume_up` (English only). |
-| `service/AudioManagerPlayback.kt`, `service/PlaybackManager.kt` | Resume after other media (see below). |
+| `service/AudioManagerPlayback.kt`, `service/PlaybackManager.kt`, `service/MusicService.kt` | Resume after other media (see below). |
 | `res/xml/pref_audio.xml`, `res/values/strings.xml` | `resume_after_focus_loss` switch and its English strings. |
 | `app/build.gradle.kts` | `versionCode` bumps only. |
 
@@ -177,14 +177,30 @@ still applies.
 - On that loss, `AudioManagerPlayback` pauses as before. If it was playing and the setting is on,
   it sets `isPausedByLossOfFocus` and keeps its focus request (it doesn't call `abandonFocus()`).
 - Android removes an app from the focus stack after a permanent loss, so `AUDIOFOCUS_GAIN`
-  usually doesn't come back. A main-thread check therefore starts 3 s after the loss and runs
-  every second. Once `AudioManager.isMusicActive` has been false (and the audio mode is
-  `MODE_NORMAL`) for 3 checks in a row, it requests focus again. If that's granted, it calls
-  `start()` and `onPlayStateChanged()`, like the transient path. If focus is denied (for example
-  during a call), it keeps waiting. If `AUDIOFOCUS_GAIN` does arrive, it resumes the same way.
+  usually doesn't come back. Instead, Retro watches whether other media is still playing:
+  - API 26+: while a resume is pending, an `AudioManager.AudioPlaybackCallback` is registered
+    (on the main thread) and also checked once right after registering. Other media counts as
+    active if any reported `AudioPlaybackConfiguration` has usage `USAGE_MEDIA` / `USAGE_GAME` or
+    content type music / movie, if `AudioManager.isMusicActive` is true, or if the audio mode
+    isn't `MODE_NORMAL` (call or ringtone). Apps only receive configs for players that are
+    started, and Retro is paused, so every reported media config belongs to another app.
+  - When nothing else is playing, a 1 s debounce starts. Any new playback cancels it, so the
+    gap between two videos doesn't trigger a resume. Until other media has been seen after the
+    loss, the delay is 3 s instead, because the other app usually takes focus a moment before
+    its playback starts. There's no periodic polling on API 26+.
+  - API 24-25: the same check runs once a second, starting 1 s after the loss. Retro resumes
+    after 1 idle check (3 before other media has been seen).
+  - When the delay ends, Retro checks once more, then requests focus. If that's granted, it
+    calls `start()` and `onPlayStateChanged()`, like the transient path. If focus is denied
+    (for example during a call), it keeps waiting for the next playback change. If
+    `AUDIOFOCUS_GAIN` does arrive, it resumes the same way.
 - `start()`, `pause()` and `stop()` all call `clearPendingFocusResume()`, so a manual play,
   pause or stop cancels the pending resume. `PlaybackManager.pause()` also clears it when
-  playback is already paused. The check stops too if the setting is turned off or Always play is
-  turned on.
-- Limitations: an app that keeps playing (or keeps an active media stream) means no resume. The
-  check can't tell which app is playing. If Android stops the paused service, nothing resumes.
+  playback is already paused. Clearing also unregisters the playback callback and cancels any
+  pending check. Waiting also stops as soon as the setting is turned off or Always play is
+  turned on (`MusicService.onSharedPreferenceChanged` calls
+  `PlaybackManager.onFocusResumeSettingsChanged()`), and when the service is destroyed (`release()` calls `stop()`).
+- Limitations: an app that keeps playing (or keeps an active media stream) means no resume.
+  On Android 10+ the configs given to apps hide which app is playing (no uid), so any other
+  media source keeps Retro paused. A focus denial with no later playback change (rare) leaves
+  Retro waiting. If Android stops the paused service, nothing resumes.

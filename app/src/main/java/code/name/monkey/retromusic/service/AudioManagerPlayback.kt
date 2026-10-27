@@ -4,7 +4,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.media.AudioAttributes
 import android.media.AudioManager
+import android.media.AudioPlaybackConfiguration
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import androidx.annotation.CallSuper
@@ -54,34 +57,142 @@ abstract class AudioManagerPlayback(val context: Context) : Playback {
 
     private val mainHandler = Handler(Looper.getMainLooper())
 
-    /** Consecutive checks in which no other media was playing. */
+    /** True once other media has been seen playing since the focus loss. */
+    @Volatile
+    private var otherMediaSeen = false
+
+    /** Consecutive legacy (API 24-25) checks in which no other media was playing. */
     private var idleChecks = 0
+
+    private val focusResumeLock = Any()
+
+    /** API 26+ playback listener, registered only while a resume is pending. */
+    private var playbackCallback: AudioManager.AudioPlaybackCallback? = null
 
     /**
      * Android removes an app from the focus stack after a permanent focus loss, so
-     * AUDIOFOCUS_GAIN usually never comes back. While waiting, poll whether any media is
-     * still playing (Retro itself is paused, so this only sees other apps) and resume once
-     * it has been silent for [RESUME_IDLE_CHECKS] checks in a row.
+     * AUDIOFOCUS_GAIN usually never comes back. Instead, Retro watches whether other media
+     * is still playing and resumes once it has stopped.
+     *
+     * On API 26+ this is event driven: an [AudioManager.AudioPlaybackCallback] reports every
+     * playback change, and [debouncedResume] runs once nothing else has played for
+     * [RESUME_DEBOUNCE_MS] (cancelled if playback starts again). On API 24-25 a check runs
+     * once a second instead.
      */
-    private val resumeCheck = object : Runnable {
-        override fun run() {
-            if (!isPausedByLossOfFocus) return
-            val am = audioManager
-            if (am == null || isPlaying || isAudioFocusEnabled || !isResumeAfterFocusLossEnabled) {
-                clearPendingFocusResume()
-                return
-            }
-            val otherMediaActive = am.isMusicActive || am.mode != AudioManager.MODE_NORMAL
-            idleChecks = if (otherMediaActive) 0 else idleChecks + 1
-            if (idleChecks >= RESUME_IDLE_CHECKS) {
-                // Only resume if focus is actually granted (not during a call, for example).
-                if (requestFocus()) {
-                    resumeAfterFocusLoss()
-                    return
+    private fun startWaitingForOtherMedia() {
+        isPausedByLossOfFocus = true
+        otherMediaSeen = false
+        idleChecks = 0
+        val am = audioManager ?: return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            synchronized(focusResumeLock) {
+                if (playbackCallback == null) {
+                    val callback = object : AudioManager.AudioPlaybackCallback() {
+                        override fun onPlaybackConfigChanged(
+                            configs: MutableList<AudioPlaybackConfiguration>?
+                        ) {
+                            onOtherMediaChanged(configs.orEmpty())
+                        }
+                    }
+                    am.registerAudioPlaybackCallback(callback, mainHandler)
+                    playbackCallback = callback
                 }
-                idleChecks = 0
             }
-            mainHandler.postDelayed(this, RESUME_CHECK_INTERVAL_MS)
+            // Check once right away; the callback only fires on the next change.
+            mainHandler.post { onOtherMediaChanged(am.activePlaybackConfigurations) }
+        } else {
+            mainHandler.postDelayed(legacyResumeCheck, RESUME_DEBOUNCE_MS)
+        }
+    }
+
+    /** True if another app is playing media, or a call / ringtone is in progress. */
+    private fun isOtherMediaActive(configs: List<AudioPlaybackConfiguration>?): Boolean {
+        val am = audioManager ?: return false
+        if (am.mode != AudioManager.MODE_NORMAL) return true
+        // Retro is paused here, and only started (active) players are reported to apps,
+        // so every media config in the list belongs to another app.
+        val mediaInConfigs = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                configs.orEmpty().any { isMediaAttributes(it.audioAttributes) }
+        return mediaInConfigs || am.isMusicActive
+    }
+
+    private fun isMediaAttributes(attributes: AudioAttributes?): Boolean {
+        if (attributes == null) return false
+        return attributes.usage == AudioAttributes.USAGE_MEDIA ||
+                attributes.usage == AudioAttributes.USAGE_GAME ||
+                attributes.contentType == AudioAttributes.CONTENT_TYPE_MUSIC ||
+                attributes.contentType == AudioAttributes.CONTENT_TYPE_MOVIE
+    }
+
+    /** Called when Always play or Resume after other media is changed. */
+    fun onFocusResumeSettingsChanged() {
+        if (isPausedByLossOfFocus) shouldKeepWaiting()
+    }
+
+    /** False (and clears the pending resume) if waiting no longer makes sense. */
+    private fun shouldKeepWaiting(): Boolean {
+        if (!isPausedByLossOfFocus) return false
+        if (audioManager == null || isPlaying || isAudioFocusEnabled ||
+            !isResumeAfterFocusLossEnabled
+        ) {
+            clearPendingFocusResume()
+            return false
+        }
+        return true
+    }
+
+    private fun onOtherMediaChanged(configs: List<AudioPlaybackConfiguration>) {
+        if (!shouldKeepWaiting()) return
+        mainHandler.removeCallbacks(debouncedResume)
+        if (isOtherMediaActive(configs)) {
+            otherMediaSeen = true
+        } else {
+            mainHandler.postDelayed(debouncedResume, resumeDelay())
+        }
+    }
+
+    /**
+     * Until other media has actually been seen, wait a bit longer, because the other app
+     * usually takes focus a moment before its playback starts.
+     */
+    private fun resumeDelay(): Long =
+        if (otherMediaSeen) RESUME_DEBOUNCE_MS else RESUME_INITIAL_GRACE_MS
+
+    private val debouncedResume = Runnable {
+        if (!shouldKeepWaiting()) return@Runnable
+        val am = audioManager ?: return@Runnable
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            isOtherMediaActive(am.activePlaybackConfigurations)
+        ) {
+            otherMediaSeen = true
+            return@Runnable
+        }
+        // Only resume if focus is actually granted. If it's denied (for example during a
+        // call), keep waiting for the next playback change.
+        if (requestFocus()) {
+            resumeAfterFocusLoss()
+        }
+    }
+
+    /** API 24-25 fallback: check once a second. */
+    private val legacyResumeCheck = object : Runnable {
+        override fun run() {
+            if (!shouldKeepWaiting()) return
+            if (isOtherMediaActive(null)) {
+                otherMediaSeen = true
+                idleChecks = 0
+            } else {
+                idleChecks++
+                val needed = resumeDelay() / RESUME_DEBOUNCE_MS
+                if (idleChecks >= needed) {
+                    if (requestFocus()) {
+                        resumeAfterFocusLoss()
+                        return
+                    }
+                    idleChecks = 0
+                }
+            }
+            mainHandler.postDelayed(this, RESUME_DEBOUNCE_MS)
         }
     }
 
@@ -96,8 +207,16 @@ abstract class AudioManagerPlayback(val context: Context) : Playback {
     /** Forget a pending automatic resume after a permanent focus loss. */
     fun clearPendingFocusResume() {
         isPausedByLossOfFocus = false
+        otherMediaSeen = false
         idleChecks = 0
-        mainHandler.removeCallbacks(resumeCheck)
+        mainHandler.removeCallbacks(debouncedResume)
+        mainHandler.removeCallbacks(legacyResumeCheck)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            synchronized(focusResumeLock) {
+                playbackCallback?.let { audioManager?.unregisterAudioPlaybackCallback(it) }
+                playbackCallback = null
+            }
+        }
     }
     private val audioFocusListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
         when (focusChange) {
@@ -122,9 +241,7 @@ abstract class AudioManagerPlayback(val context: Context) : Playback {
                     if (wasPlaying && isResumeAfterFocusLossEnabled) {
                         // Keep the focus request (don't abandon it) and wait for the other
                         // media to stop. pause() above cleared any earlier pending resume.
-                        isPausedByLossOfFocus = true
-                        idleChecks = 0
-                        mainHandler.postDelayed(resumeCheck, RESUME_FIRST_CHECK_DELAY_MS)
+                        startWaitingForOtherMedia()
                     }
                 }
             }
@@ -229,11 +346,11 @@ abstract class AudioManagerPlayback(val context: Context) : Playback {
     }
 
     private companion object {
-        /** Wait before the first check, so the other app has started its playback. */
-        const val RESUME_FIRST_CHECK_DELAY_MS = 3000L
-        const val RESUME_CHECK_INTERVAL_MS = 1000L
-        /** Seconds of silence from other apps before resuming (bridges short gaps). */
-        const val RESUME_IDLE_CHECKS = 3
+        /** How long other media must stay stopped before Retro resumes. */
+        const val RESUME_DEBOUNCE_MS = 1000L
+
+        /** Used instead until other media has been seen playing after the focus loss. */
+        const val RESUME_INITIAL_GRACE_MS = 3000L
     }
 
     object Volume {

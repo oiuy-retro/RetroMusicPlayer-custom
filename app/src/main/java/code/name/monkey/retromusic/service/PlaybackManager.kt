@@ -195,6 +195,10 @@ class PlaybackManager(val context: Context) {
         }
     }
 
+    fun onFocusResumeSettingsChanged() {
+        (playback as? AudioManagerPlayback)?.onFocusResumeSettingsChanged()
+    }
+
     fun setPlayerGain(gain: Float) {
         playback?.setPlayerGain(gain)
     }
