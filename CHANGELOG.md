@@ -24,7 +24,8 @@ shared as APK files. For changes in the app itself, see the
 - A paused browser video still counted as playing, because browsers keep their audio stream open.
   New optional "Detect paused videos" setting (notification access) reads other apps' play/pause
   state instead. Retro also no longer stops its service while a resume is pending.
-- Temporary diagnostic: "Copy resume log" in Audio settings copies the last 200 resume events.
+- Temporary diagnostic: "Resume log" switch (off by default; turning it off deletes the log) and
+  "Copy resume log" in Audio settings, which copies the last 200 resume events.
 - Documentation for the custom build: README, this changelog, `docs/BUILDING.md`,
   `docs/CUSTOM_CHANGES.md`, `docs/UPDATING_FROM_UPSTREAM.md` and `retro.properties.example`.
   The upstream README is now in `docs/UPSTREAM_README.md`.

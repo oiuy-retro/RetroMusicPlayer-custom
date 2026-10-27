@@ -62,6 +62,10 @@ class AudioSettings : AbsSettingsFragment() {
             }
         }
         // Temporary diagnostic for Resume after other media
+        findPreference<Preference>(ResumeLog.ENABLED_KEY)?.setOnPreferenceChangeListener { _, on ->
+            if (on == false) ResumeLog.clear(requireContext())
+            true
+        }
         findPreference<Preference>("copy_resume_log")?.setOnPreferenceClickListener {
             val ctx = requireContext()
             ctx.getSystemService<ClipboardManager>()

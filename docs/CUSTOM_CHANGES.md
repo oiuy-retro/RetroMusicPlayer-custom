@@ -200,7 +200,8 @@ still applies.
     stays in the foreground (Android 17 refuses audio focus to background apps without one).
   - Temporary diagnostic: `ResumeLog` keeps the last 200 events in memory and in
     `files/resume_log.txt` (also logcat tag `ResumeAfterFocus`). "Copy resume log" in Audio
-    settings copies them. Remove once the feature is confirmed working.
+    settings copies them. It only records while the "Resume log" switch (`resume_log_enabled`, off
+    by default) is on; turning it off deletes the file. Logcat lines are always written. Remove once the feature is confirmed working.
   - API 24-25: the same check runs once a second, starting 1 s after the loss. Retro resumes
     after 1 idle check (3 before other media has been seen).
   - When the delay ends, Retro checks once more, then requests focus. If that's granted, it
