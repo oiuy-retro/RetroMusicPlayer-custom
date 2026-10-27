@@ -65,6 +65,9 @@ import code.name.monkey.retromusic.LOCK_SCREEN
 import code.name.monkey.retromusic.LYRICS_OPTIONS
 import code.name.monkey.retromusic.LYRICS_TYPE
 import code.name.monkey.retromusic.MANAGE_AUDIO_FOCUS
+import code.name.monkey.retromusic.RESUME_AFTER_FOCUS_LOSS
+import code.name.monkey.retromusic.RESUME_TIMED_FALLBACK
+import code.name.monkey.retromusic.RESUME_TIMED_FALLBACK_DELAY
 import code.name.monkey.retromusic.MATERIAL_YOU
 import code.name.monkey.retromusic.NEW_BLUR_AMOUNT
 import code.name.monkey.retromusic.NEXT_SLEEP_TIMER_ELAPSED_REALTIME
@@ -435,6 +438,18 @@ object PreferenceUtil {
         get() = sharedPreferences.getBoolean(
             MANAGE_AUDIO_FOCUS, false
         )
+
+    val isResumeAfterFocusLossEnabled
+        get() = sharedPreferences.getBoolean(
+            RESUME_AFTER_FOCUS_LOSS, false
+        )
+
+    val isResumeTimedFallbackEnabled
+        get() = sharedPreferences.getBoolean(RESUME_TIMED_FALLBACK, false)
+
+    /** Timed fallback delay in ms (stored as half-second steps, 0.5..20 s). */
+    val resumeTimedFallbackDelayMs: Long
+        get() = sharedPreferences.getInt(RESUME_TIMED_FALLBACK_DELAY, 6).coerceIn(1, 40) * 500L
 
     val isLockScreen get() = sharedPreferences.getBoolean(LOCK_SCREEN, false)
 

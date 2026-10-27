@@ -163,6 +163,7 @@ class MediaSessionCallback(
 
     override fun onPause() {
         super.onPause()
+        ResumeLog.d("media session onPause")
         musicService.pause()
     }
 

@@ -21,7 +21,7 @@ android {
         }
 
         applicationId = namespace
-        versionCode = 10705
+        versionCode = 10709
         versionName = "7.0.3"
 
         buildConfigField("String", "GOOGLE_PLAY_LICENSING_KEY", "\"${getProperty(getProperties("../public.properties"), "GOOGLE_PLAY_LICENSE_KEY")}\"")
@@ -100,6 +100,7 @@ android {
 
 
 dependencies {
+    testImplementation("junit:junit:4.13.2")
     implementation(project(":appthemehelper"))
     implementation(libs.gridLayout)
 

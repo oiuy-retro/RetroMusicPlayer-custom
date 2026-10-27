@@ -62,7 +62,9 @@ import code.name.monkey.retromusic.BLURRED_ALBUM_ART
 import code.name.monkey.retromusic.BuildConfig
 import code.name.monkey.retromusic.CROSS_FADE_DURATION
 import code.name.monkey.retromusic.PLAYBACK_PITCH
+import code.name.monkey.retromusic.MANAGE_AUDIO_FOCUS
 import code.name.monkey.retromusic.PLAYER_VOLUME
+import code.name.monkey.retromusic.RESUME_AFTER_FOCUS_LOSS
 import code.name.monkey.retromusic.PLAYBACK_SPEED
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.TOGGLE_HEADSET
@@ -307,6 +309,7 @@ class MusicService : MediaBrowserServiceCompat(),
     private var isForeground = false
     override fun onCreate() {
         super.onCreate()
+        ResumeLog.init(this)
         val powerManager = getSystemService<PowerManager>()
         if (powerManager != null) {
             wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, javaClass.name)
@@ -378,6 +381,7 @@ class MusicService : MediaBrowserServiceCompat(),
         if (audioDeviceCallback != null) {
             getSystemService<AudioManager>()?.unregisterAudioDeviceCallback(audioDeviceCallback!!)
         }
+        ResumeLog.d("service destroyed (resumePending=${playbackManager.isResumePending})")
         mediaSession?.isActive = false
         quit()
         releaseResources()
@@ -682,6 +686,11 @@ class MusicService : MediaBrowserServiceCompat(),
                 playbackManager.setPlaybackSpeedPitch(playbackSpeed, playbackPitch)
             }
 
+            MANAGE_AUDIO_FOCUS, RESUME_AFTER_FOCUS_LOSS -> {
+                // Stop waiting to resume if the new settings no longer allow it
+                playbackManager.onFocusResumeSettingsChanged()
+            }
+
             PLAYER_VOLUME -> {
                 playbackManager.setPlayerGain(PlayerVolume.currentGain)
                 // Refresh the media controls (volume-down icon shows "off" at 0 %)
@@ -716,7 +725,10 @@ class MusicService : MediaBrowserServiceCompat(),
                         play()
                     }
 
-                    ACTION_PAUSE -> pause()
+                    ACTION_PAUSE -> {
+                        ResumeLog.d("pause intent (headset/notification/noisy)")
+                        pause()
+                    }
                     ACTION_PLAY -> play()
                     ACTION_PLAY_PLAYLIST -> playFromPlaylist(intent)
                     ACTION_REWIND -> back(true)
@@ -782,7 +794,11 @@ class MusicService : MediaBrowserServiceCompat(),
     }
 
     override fun onUnbind(intent: Intent): Boolean {
-        if (!isPlaying) {
+        // Don't stop while waiting to resume after other media: stopping would cancel the
+        // resume, and on Android 17 a stopped service can't get audio focus back.
+        if (playbackManager.isResumePending) {
+            ResumeLog.d("onUnbind: kept running, resume pending")
+        } else if (!isPlaying) {
             stopSelf()
         }
         return true
@@ -1200,7 +1216,7 @@ class MusicService : MediaBrowserServiceCompat(),
     private fun startForegroundOrNotify() {
         if (isQuitting) return
         if (playingNotification != null && currentSong.id != -1L) {
-            if (isForeground && !isPlaying) {
+            if (isForeground && !isPlaying && !playbackManager.isResumePending) {
                 // This makes the notification dismissible
                 // We can't call stopForeground(false) on A12 though, which may result in crashes
                 // when we call startForeground after that e.g. when Alarm goes off,

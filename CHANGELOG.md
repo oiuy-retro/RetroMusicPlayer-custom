@@ -12,6 +12,24 @@ shared as APK files. For changes in the app itself, see the
 ## [Unreleased]
 
 ### Added
+- "Resume after other media" setting in Audio, under "Always play" (off by default). When it's on
+  and Always play is off, Retro pauses when another app starts playing media and resumes about a
+  second after that media stops. Short gaps, such as between two videos, don't trigger a resume.
+  A manual play, pause or stop cancels the automatic resume. versionCode 10709.
+
+### Fixed
+- Resume after other media never resumed (seen on Android 17): paused players still counted as
+  playing. It now checks whether media audio is actually playing, and retries if Android refuses
+  audio focus.
+- A paused browser video still counted as playing, because browsers keep their audio stream open.
+  New optional "Detect paused videos" setting (notification access) reads other apps' play/pause
+  state instead. Retro also no longer stops its service while a resume is pending.
+- "Resume after a set time" switch with a 0.5-20 s delay slider (default 3 s): resumes after the
+  delay even if other media still seems to be playing.
+- The notification-access listener now unbinds itself as soon as it connects and blocks every
+  notification-reading method, so it can't read notifications.
+- Temporary diagnostic: "Resume log" switch (off by default; turning it off deletes the log) and
+  "Copy resume log" in Audio settings, which copies the last 200 resume events.
 - Documentation for the custom build: README, this changelog, `docs/BUILDING.md`,
   `docs/CUSTOM_CHANGES.md`, `docs/UPDATING_FROM_UPSTREAM.md` and `retro.properties.example`.
   The upstream README is now in `docs/UPSTREAM_README.md`.
