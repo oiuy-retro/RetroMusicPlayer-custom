@@ -17,6 +17,13 @@ shared as APK files. For changes in the app itself, see the
   The upstream README is now in `docs/UPSTREAM_README.md`.
 - `.gitignore` entries for signing files (`retro.properties`, `*.jks`, `*.keystore`,
   `keystore.properties`, `public.properties`).
+- A **Shuffle** settings page (Settings > Shuffle) with a choice of shuffle modes: True random
+  (the original shuffle and the default), Folder or album blocks, Genre blocks, Artist blocks,
+  Spread out artists, Weighted (favorites, most played or least played) and Spotify-style.
+  Each mode has its own options. A separate No repeats switch works with any mode and keeps its
+  history between sessions, with a Reset shuffle history button. General options: reshuffle when
+  the queue repeats with Repeat all, leave out songs shorter than a set length, and whether
+  skipped songs count as played. versionCode 10710 on the `feature/shuffle-modes` branch.
 
 ## [7.0.3-custom.3] - 2026-10-20 (versionCode 10705)
 

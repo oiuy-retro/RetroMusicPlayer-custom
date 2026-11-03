@@ -14,9 +14,16 @@
  */
 package code.name.monkey.retromusic.helper
 
+import android.content.Context
 import code.name.monkey.retromusic.model.Song
+import code.name.monkey.retromusic.shuffle.ShuffleQueueBuilder
 
 object ShuffleHelper {
+
+    /** Shuffles using the mode chosen in Settings > Shuffle (default: the original behaviour below). */
+    fun makeShuffleList(context: Context, listToShuffle: MutableList<Song>, current: Int) {
+        ShuffleQueueBuilder.shuffle(context, listToShuffle, current)
+    }
 
     fun makeShuffleList(listToShuffle: MutableList<Song>, current: Int) {
         if (listToShuffle.isEmpty()) return

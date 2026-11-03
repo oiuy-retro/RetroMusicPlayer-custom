@@ -550,7 +550,7 @@ class MusicService : MediaBrowserServiceCompat(),
         when (shuffleMode) {
             SHUFFLE_MODE_SHUFFLE -> {
                 this.shuffleMode = shuffleMode
-                makeShuffleList(playingQueue, getPosition())
+                makeShuffleList(this, playingQueue, getPosition())
                 position = 0
             }
 
@@ -801,7 +801,7 @@ class MusicService : MediaBrowserServiceCompat(),
             this.playingQueue = ArrayList(originalPlayingQueue)
             var position = startPosition
             if (shuffleMode == SHUFFLE_MODE_SHUFFLE) {
-                makeShuffleList(this.playingQueue, startPosition)
+                makeShuffleList(this, this.playingQueue, startPosition)
                 position = 0
             }
             if (startPlaying) {
@@ -867,8 +867,29 @@ class MusicService : MediaBrowserServiceCompat(),
         }
     }
 
+    /**
+     * Settings > Shuffle > "Reshuffle when the queue repeats": when the last song of a shuffled
+     * queue starts with Repeat all on, mix the other songs again so the next loop has a new order.
+     * The current song moves to the end so playback continues unchanged.
+     */
+    private fun reshuffleForLoopIfNeeded() {
+        if (shuffleMode != SHUFFLE_MODE_SHUFFLE || repeatMode != REPEAT_MODE_ALL) return
+        if (!isLastTrack || playingQueue.size < 3) return
+        if (!code.name.monkey.retromusic.shuffle.ShuffleSettings.reshuffleOnLoop(
+                PreferenceManager.getDefaultSharedPreferences(this)
+            )
+        ) return
+        val current = playingQueue[position]
+        val others = ArrayList(playingQueue.subList(0, position))
+        makeShuffleList(this, others, -1)
+        playingQueue = ArrayList(others + current)
+        position = playingQueue.size - 1
+        notifyChange(QUEUE_CHANGED)
+    }
+
     @Synchronized
     fun prepareNextImpl() {
+        reshuffleForLoopIfNeeded()
         try {
             val nextPosition = getNextPosition(false)
             playbackManager.setNextDataSource(getSongAt(nextPosition).uri)
@@ -1178,6 +1199,10 @@ class MusicService : MediaBrowserServiceCompat(),
                         SongPlayCountStore.getInstance(this@MusicService)
                             .bumpPlayCount(songPlayCountHelper.song.id)
                     }
+                    code.name.monkey.retromusic.shuffle.ShuffleQueueBuilder.onSongFinished(
+                        this@MusicService, songPlayCountHelper.song,
+                        songPlayCountHelper.shouldBumpPlayCount()
+                    )
                     songPlayCountHelper.notifySongChanged(currentSong)
                     storage.saveSong(currentSong)
                 }

@@ -87,7 +87,7 @@ class MediaSessionCallback(
             }
             AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_SHUFFLE -> {
                 val allSongs = songRepository.songs().toMutableList()
-                makeShuffleList(allSongs, -1)
+                makeShuffleList(musicService, allSongs, -1)
                 musicService.openQueue(allSongs, 0, true)
             }
             AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_HISTORY,

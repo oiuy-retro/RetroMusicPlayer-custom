@@ -165,3 +165,86 @@ with that raw id shows the combined entry as upstream did.
 
 `Artist.name` now prefers `displayName`. The unknown-artist and Various Artists display mapping
 still applies.
+
+## Shuffle modes
+
+Settings > Shuffle (`fragments/settings/ShuffleSettingsFragment.kt`, `res/xml/pref_shuffle.xml`)
+chooses how the queue is reordered when shuffle is turned on or a shuffled queue is started.
+
+### Files
+
+| File | Change |
+|---|---|
+| `shuffle/ShuffleEngine.kt` (new) | The algorithms. Pure Kotlin, no Android types; tested in `app/src/test/.../shuffle/ShuffleEngineTest.kt` with fake songs and a seeded `Random`. |
+| `shuffle/ShuffleQueueBuilder.kt` (new) | Reads settings and library data, converts `Song`s to `ShuffleTrack`s, runs the engine. |
+| `shuffle/ShuffleSettings.kt` (new) | Preference keys and readers. |
+| `shuffle/ShuffleHistory.kt` (new) | No-repeat history, one song id per line in `files/shuffle_history.txt`. |
+| `helper/ShuffleHelper.kt` | New `makeShuffleList(context, list, current)` overload that routes through the builder. The original function is unchanged. |
+| `service/MusicService.kt` | `setShuffleMode` and `openQueue` use the new overload. `reshuffleForLoopIfNeeded()` runs at the start of `prepareNextImpl()`. The `META_CHANGED` handler reports the previous song to the no-repeat history. |
+| `service/MediaSessionCallback.kt` | "Shuffle all" (Android Auto and other controllers) uses the new overload. |
+| `fragments/settings/MainSettingsFragment.kt`, `SettingsFragment.kt`, `res/layout/fragment_main_settings.xml`, `res/navigation/settings_graph.xml` | The Shuffle entry, its title and navigation. |
+| `res/values/strings.xml`, `res/values/arrays.xml` | English strings and list values. |
+| `app/build.gradle.kts` | `testImplementation("junit:junit:4.13.2")` and the versionCode. |
+
+### Behavior
+
+The whole order is computed when shuffle starts, so the queue screen shows the real upcoming
+songs. The current song always stays first. When every option is at its default (True random, No
+repeats off, minimum length 0), the original `ShuffleHelper` code runs, so the default behavior is
+unchanged. If building the order fails for any reason, it also falls back to the original code.
+
+- **True random**: every order is equally likely.
+- **Folder or album blocks**: the grouping is the album (`albumId`) or the song's parent folder
+  (taken from the file path). A random song is picked, then a random count between min and max
+  (default 3 to 6) is taken from its group, or the whole group if it's smaller. "In order from the
+  first pick" continues by track number (album) or file path (folder) from the pick and wraps to
+  the group's earlier songs. "Random within block" takes random songs from the group. The next
+  pick prefers a different group.
+- **Genre blocks**: a random song is picked and random songs of the same genre follow until the
+  block's total length reaches a target. The target is chosen randomly between min and max
+  minutes (default 20 to 40) for each block, and it's counted from song durations. The song that
+  crosses the target plays in full. The next pick prefers a different genre. Genres come from
+  MediaStore (the `GENRE` column on Android 11 and newer, the genre tables on older versions).
+  Untagged songs form an "Unknown" group, or can be left out.
+- **Artist blocks**: like album blocks, grouped by the song's first artist after this fork's `;`
+  split. "In order" goes by album, then track number.
+- **Spread out artists**: random, but no artist plays again within N songs (1 to 20, default 5).
+  All of a song's `;`-split artists count. If no song fits, the song whose artist was last heard
+  longest ago is used.
+- **Weighted**: Efraimidis-Spirakis weighted random order. Each song's weight is
+  `1 + strength × score`, with strength 0 to 10 (default 5) and score 0 to 1. Favorites score 1
+  for songs in the Favorites playlist. Most played uses the rank in the existing play-count store
+  (`SongPlayCountStore`), and least played is the reverse, with never-counted songs scoring 1.
+- **Spotify-style**: after Lukáš Poláček, "How to shuffle songs?", Spotify Engineering, 28
+  February 2014 (<https://engineering.atspotify.com/2014/02/how-to-shuffle-songs/>, archived at
+  <https://web.archive.org/web/20220215030739/https://engineering.atspotify.com/2014/02/how-to-shuffle-songs/>).
+  Each artist's songs are shuffled, then spread evenly along the queue with a random starting
+  offset per artist and up to ±20 % random variation in spacing, and everything is sorted by
+  position. There's no Apple mode because Apple hasn't published its algorithm.
+
+Options for all modes:
+
+- **No repeats**: songs already in the history are placed after all unplayed songs, and each
+  part is ordered by the active mode. When the share of the queue's songs that have been played
+  reaches the set percentage (50 to 100, default 100), those songs are removed from the history.
+  A song is added when it stops being the current song after more than half of it has played,
+  the same rule as the play count. With "Skipped songs count as played" on, it's added either way.
+- **Reshuffle when the queue repeats**: with shuffle and Repeat all on, when the last song starts,
+  the other songs are reshuffled and the current song moves to the end, so the next loop has a new
+  order.
+- **Skip songs shorter than**: songs shorter than N seconds (0 to 120, 0 = off) are left out of
+  the shuffled queue. They come back when shuffle is turned off, because the unshuffled queue is
+  kept separately as before.
+
+### Limits
+
+- Settings apply the next time shuffle is turned on or a shuffled queue is started. They don't
+  reorder a queue that's already shuffled.
+- Genre blocks depend on genre tags in MediaStore. Songs with several genres use the one
+  MediaStore reports.
+- "Shuffle all" from the Songs list still starts on a random song chosen before the mode runs.
+  With No repeats on, that first song can be one that was already played.
+- The Artists tab shuffle button is unchanged. It orders artists randomly and plays each artist's
+  songs together with shuffle off.
+- Library data for Weighted and Genre blocks is read when shuffle starts, which can take a moment
+  on large libraries.

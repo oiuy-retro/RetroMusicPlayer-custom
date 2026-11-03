@@ -37,6 +37,7 @@ class MainSettingsFragment : Fragment(), View.OnClickListener {
             when (view.id) {
                 R.id.generalSettings -> R.id.action_mainSettingsFragment_to_themeSettingsFragment
                 R.id.audioSettings -> R.id.action_mainSettingsFragment_to_audioSettings
+                R.id.shuffleSettings -> R.id.action_mainSettingsFragment_to_shuffleSettings
                 R.id.personalizeSettings -> R.id.action_mainSettingsFragment_to_personalizeSettingsFragment
                 R.id.imageSettings -> R.id.action_mainSettingsFragment_to_imageSettingFragment
                 R.id.otherSettings -> R.id.action_mainSettingsFragment_to_otherSettingsFragment
@@ -62,6 +63,7 @@ class MainSettingsFragment : Fragment(), View.OnClickListener {
 
         binding.generalSettings.setOnClickListener(this)
         binding.audioSettings.setOnClickListener(this)
+        binding.shuffleSettings.setOnClickListener(this)
         binding.nowPlayingSettings.setOnClickListener(this)
         binding.personalizeSettings.setOnClickListener(this)
         binding.imageSettings.setOnClickListener(this)
