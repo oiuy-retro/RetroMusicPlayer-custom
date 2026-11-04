@@ -72,7 +72,7 @@ class ShuffleEngineTest {
 
     @Test
     fun albumBlockSizesStayWithinMinMax() {
-        val config = ShuffleConfig(mode = ShuffleMode.GROUP_BLOCKS, groupMinSongs = 2, groupMaxSongs = 4)
+        val config = ShuffleConfig(mode = ShuffleMode.GROUP_BLOCKS, groupLimits = BlockLimits(minSongs = 2, maxSongs = 4))
         for (seed in 0 until 50) {
             val order = ShuffleEngine.order(library, 3, config, Random(seed))
             assertPermutation(order)
@@ -85,7 +85,7 @@ class ShuffleEngineTest {
 
     @Test
     fun blockNeverExceedsMaxAndRespectsMinWhenPossible() {
-        val config = ShuffleConfig(mode = ShuffleMode.GROUP_BLOCKS, groupMinSongs = 3, groupMaxSongs = 3)
+        val config = ShuffleConfig(mode = ShuffleMode.GROUP_BLOCKS, groupLimits = BlockLimits(minSongs = 3, maxSongs = 3))
         val order = ShuffleEngine.order(library, -1, config, Random(1))
         val runs = blocks(order) { it.albumKey }
         // 56 songs, albums of 7: every block is 3 except the 1-song remainders of each album.
@@ -94,7 +94,7 @@ class ShuffleEngineTest {
 
     @Test
     fun inOrderBlocksFollowTrackNumbers() {
-        val config = ShuffleConfig(mode = ShuffleMode.GROUP_BLOCKS, groupMinSongs = 7, groupMaxSongs = 7, groupInOrder = true)
+        val config = ShuffleConfig(mode = ShuffleMode.GROUP_BLOCKS, groupLimits = BlockLimits(minSongs = 7, maxSongs = 7), groupInOrder = true)
         val order = ShuffleEngine.order(library, 2, config, Random(5))
         // Current is album0 track 3: the block continues 4,5,6,7 then wraps to 1,2.
         assertEquals(listOf(2, 3, 4, 5, 6, 0, 1), order.take(7))
@@ -102,7 +102,7 @@ class ShuffleEngineTest {
 
     @Test
     fun folderGroupingUsesFolders() {
-        val config = ShuffleConfig(mode = ShuffleMode.GROUP_BLOCKS, grouping = BlockGrouping.FOLDER, groupMinSongs = 10, groupMaxSongs = 10)
+        val config = ShuffleConfig(mode = ShuffleMode.GROUP_BLOCKS, grouping = BlockGrouping.FOLDER, groupLimits = BlockLimits(minSongs = 10, maxSongs = 10))
         val order = ShuffleEngine.order(library, -1, config, Random(3))
         val first = order.take(10).map { library[it].folderKey }.toSet()
         assertEquals(1, first.size)
@@ -110,7 +110,7 @@ class ShuffleEngineTest {
 
     @Test
     fun artistBlocksStayWithinMax() {
-        val config = ShuffleConfig(mode = ShuffleMode.ARTIST_BLOCKS, artistMinSongs = 2, artistMaxSongs = 5)
+        val config = ShuffleConfig(mode = ShuffleMode.ARTIST_BLOCKS, artistLimits = BlockLimits(minSongs = 2, maxSongs = 5))
         for (seed in 0 until 30) {
             val order = ShuffleEngine.order(library, -1, config, Random(seed))
             assertPermutation(order)
@@ -120,7 +120,7 @@ class ShuffleEngineTest {
 
     @Test
     fun genreBlocksLastBetweenMinAndMaxTime() {
-        val config = ShuffleConfig(mode = ShuffleMode.GENRE_BLOCKS, genreMinMs = 9 * 60_000L, genreMaxMs = 12 * 60_000L)
+        val config = ShuffleConfig(mode = ShuffleMode.GENRE_BLOCKS, genreLimits = BlockLimits(useSongs = false, useTime = true, minMs = 9 * 60_000L, maxMs = 12 * 60_000L))
         for (seed in 0 until 30) {
             val order = ShuffleEngine.order(library, -1, config, Random(seed))
             assertPermutation(order)
@@ -206,5 +206,78 @@ class ShuffleEngineTest {
             adjacentRandom += b.zipWithNext().count { it.first == it.second }
         }
         assertTrue("spotify $adjacent vs random $adjacentRandom", adjacent < adjacentRandom / 2)
+    }
+
+    private fun cfg(mode: ShuffleMode, limits: BlockLimits) = when (mode) {
+        ShuffleMode.GENRE_BLOCKS -> ShuffleConfig(mode = mode, genreLimits = limits)
+        ShuffleMode.ARTIST_BLOCKS -> ShuffleConfig(mode = mode, artistLimits = limits)
+        else -> ShuffleConfig(mode = mode, groupLimits = limits)
+    }
+
+    private val blockModes = listOf(
+        ShuffleMode.GROUP_BLOCKS to { t: ShuffleTrack -> t.albumKey },
+        ShuffleMode.ARTIST_BLOCKS to { t: ShuffleTrack -> t.primaryArtist },
+        ShuffleMode.GENRE_BLOCKS to { t: ShuffleTrack -> t.genreKey ?: "?" },
+    )
+
+    @Test
+    fun songLimitEndsBlockFirstWhenSmallerThanTime() {
+        // 2 songs (6 min) vs 30 minutes: the song limit is reached first.
+        val limits = BlockLimits(useSongs = true, minSongs = 2, maxSongs = 2, useTime = true, minMs = 30 * 60_000L, maxMs = 30 * 60_000L)
+        for ((mode, key) in blockModes) for (seed in 0 until 20) {
+            val order = ShuffleEngine.order(library, -1, cfg(mode, limits), Random(seed))
+            assertPermutation(order)
+            blocks(order, key).dropLast(3).forEach { assertTrue("$mode ${it.size}", it.size <= 2) }
+        }
+    }
+
+    @Test
+    fun timeLimitEndsBlockFirstWhenSmallerThanSongs() {
+        // 3-minute songs, 5-minute target: 2 songs (the second crosses the target), before 6 songs.
+        val limits = BlockLimits(useSongs = true, minSongs = 6, maxSongs = 6, useTime = true, minMs = 5 * 60_000L, maxMs = 5 * 60_000L)
+        for ((mode, key) in blockModes) for (seed in 0 until 20) {
+            val order = ShuffleEngine.order(library, -1, cfg(mode, limits), Random(seed))
+            assertPermutation(order)
+            val runs = blocks(order, key).dropLast(3)
+            runs.forEach { assertTrue("$mode ${it.size}", it.size <= 2) }
+            assertTrue("$mode has 2-song blocks", runs.any { it.size == 2 })
+        }
+    }
+
+    @Test
+    fun timeOnlyIgnoresSongCount() {
+        // Song limit off: a 15-minute target needs 5 three-minute songs even though max songs is 1.
+        val limits = BlockLimits(useSongs = false, minSongs = 1, maxSongs = 1, useTime = true, minMs = 15 * 60_000L, maxMs = 15 * 60_000L)
+        val order = ShuffleEngine.order(library, 0, cfg(ShuffleMode.GROUP_BLOCKS, limits).copy(groupInOrder = true), Random(1))
+        assertEquals(listOf(0, 1, 2, 3, 4), order.take(5))
+        assertTrue(library[order[5]].albumKey != "album0")
+    }
+
+    @Test
+    fun songsOnlyIgnoresTime() {
+        val limits = BlockLimits(useSongs = true, minSongs = 4, maxSongs = 4, useTime = false, minMs = 60_000L, maxMs = 60_000L)
+        val order = ShuffleEngine.order(library, 0, cfg(ShuffleMode.GROUP_BLOCKS, limits).copy(groupInOrder = true), Random(1))
+        assertEquals(listOf(0, 1, 2, 3), order.take(4))
+        assertTrue(library[order[4]].albumKey != "album0")
+    }
+
+    @Test
+    fun bothLimitsOffFallsBackToSongs() {
+        val limits = BlockLimits(useSongs = false, minSongs = 2, maxSongs = 2, useTime = false)
+        val order = ShuffleEngine.order(library, 0, cfg(ShuffleMode.GROUP_BLOCKS, limits).copy(groupInOrder = true), Random(1))
+        assertEquals(listOf(0, 1), order.take(2))
+        assertTrue(library[order[2]].albumKey != "album0")
+    }
+
+    @Test
+    fun timeTargetIsPickedPerBlockWithinMinMax() {
+        // 6-15 minutes with 3-minute songs: blocks of 2..5 songs, and more than one size appears.
+        val limits = BlockLimits(useSongs = false, useTime = true, minMs = 6 * 60_000L, maxMs = 15 * 60_000L)
+        val sizes = mutableSetOf<Int>()
+        for (seed in 0 until 20) {
+            val order = ShuffleEngine.order(library, -1, cfg(ShuffleMode.ARTIST_BLOCKS, limits), Random(seed))
+            blocks(order) { it.primaryArtist }.dropLast(3).forEach { assertTrue("${it.size}", it.size <= 5); sizes += it.size }
+        }
+        assertTrue(sizes.size > 1)
     }
 }

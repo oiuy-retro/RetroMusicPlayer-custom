@@ -39,6 +39,9 @@ class ShuffleSettingsFragment : AbsSettingsFragment() {
         linkMinMax(ShuffleSettings.GROUP_MIN, ShuffleSettings.GROUP_MAX)
         linkMinMax(ShuffleSettings.ARTIST_MIN, ShuffleSettings.ARTIST_MAX)
         linkMinMax(ShuffleSettings.GENRE_MIN, ShuffleSettings.GENRE_MAX)
+        linkMinMax(ShuffleSettings.GENRE_MIN_SONGS, ShuffleSettings.GENRE_MAX_SONGS)
+        linkMinMax(ShuffleSettings.GROUP_MIN_MINUTES, ShuffleSettings.GROUP_MAX_MINUTES)
+        linkMinMax(ShuffleSettings.ARTIST_MIN_MINUTES, ShuffleSettings.ARTIST_MAX_MINUTES)
 
         findPreference<Preference>(ShuffleSettings.RESET_HISTORY)?.setOnPreferenceClickListener {
             ShuffleHistory.reset(requireContext())

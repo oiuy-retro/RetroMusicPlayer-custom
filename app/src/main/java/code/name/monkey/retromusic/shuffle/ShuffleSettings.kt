@@ -12,8 +12,21 @@ object ShuffleSettings {
     const val GROUP_MIN = "shuffle_group_min"
     const val GROUP_MAX = "shuffle_group_max"
     const val GROUP_ORDER = "shuffle_group_order"
+    // Existing keys are reused, so values saved by the previous version carry over.
+    const val GROUP_USE_SONGS = "shuffle_group_use_songs"
+    const val GROUP_USE_TIME = "shuffle_group_use_time"
+    const val GROUP_MIN_MINUTES = "shuffle_group_min_minutes"
+    const val GROUP_MAX_MINUTES = "shuffle_group_max_minutes"
+    const val GENRE_USE_SONGS = "shuffle_genre_use_songs"
+    const val GENRE_USE_TIME = "shuffle_genre_use_time"
+    const val GENRE_MIN_SONGS = "shuffle_genre_min"
+    const val GENRE_MAX_SONGS = "shuffle_genre_max"
     const val GENRE_MIN = "shuffle_genre_min_minutes"
     const val GENRE_MAX = "shuffle_genre_max_minutes"
+    const val ARTIST_USE_SONGS = "shuffle_artist_use_songs"
+    const val ARTIST_USE_TIME = "shuffle_artist_use_time"
+    const val ARTIST_MIN_MINUTES = "shuffle_artist_min_minutes"
+    const val ARTIST_MAX_MINUTES = "shuffle_artist_max_minutes"
     const val GENRE_EXCLUDE_UNKNOWN = "shuffle_genre_exclude_unknown"
     const val ARTIST_MIN = "shuffle_artist_min"
     const val ARTIST_MAX = "shuffle_artist_max"
@@ -46,17 +59,30 @@ object ShuffleSettings {
     fun config(p: SharedPreferences) = ShuffleConfig(
         mode = mode(p),
         grouping = if (p.getString(GROUPING, "album") == "folder") BlockGrouping.FOLDER else BlockGrouping.ALBUM,
-        groupMinSongs = p.getInt(GROUP_MIN, 3),
-        groupMaxSongs = p.getInt(GROUP_MAX, 6),
+        groupLimits = limits(p, GROUP_USE_SONGS, true, GROUP_MIN, GROUP_MAX, 3, 6,
+            GROUP_USE_TIME, false, GROUP_MIN_MINUTES, GROUP_MAX_MINUTES, 15, 30),
         groupInOrder = p.getString(GROUP_ORDER, ORDER_IN_ORDER) == ORDER_IN_ORDER,
-        artistMinSongs = p.getInt(ARTIST_MIN, 3),
-        artistMaxSongs = p.getInt(ARTIST_MAX, 6),
+        artistLimits = limits(p, ARTIST_USE_SONGS, true, ARTIST_MIN, ARTIST_MAX, 3, 6,
+            ARTIST_USE_TIME, false, ARTIST_MIN_MINUTES, ARTIST_MAX_MINUTES, 15, 30),
         artistInOrder = p.getString(ARTIST_ORDER, "random") == ORDER_IN_ORDER,
-        genreMinMs = p.getInt(GENRE_MIN, 20) * 60_000L,
-        genreMaxMs = p.getInt(GENRE_MAX, 40) * 60_000L,
+        genreLimits = limits(p, GENRE_USE_SONGS, false, GENRE_MIN_SONGS, GENRE_MAX_SONGS, 5, 10,
+            GENRE_USE_TIME, true, GENRE_MIN, GENRE_MAX, 20, 40),
         genreExcludeUnknown = p.getBoolean(GENRE_EXCLUDE_UNKNOWN, false),
         artistGap = p.getInt(ARTIST_GAP, 5),
         weightStrength = p.getInt(WEIGHT_STRENGTH, 5),
+    )
+
+    private fun limits(
+        p: SharedPreferences,
+        useSongsKey: String, useSongsDef: Boolean, minKey: String, maxKey: String, minDef: Int, maxDef: Int,
+        useTimeKey: String, useTimeDef: Boolean, minMinKey: String, maxMinKey: String, minMinDef: Int, maxMinDef: Int,
+    ) = BlockLimits(
+        useSongs = p.getBoolean(useSongsKey, useSongsDef),
+        minSongs = p.getInt(minKey, minDef),
+        maxSongs = p.getInt(maxKey, maxDef),
+        useTime = p.getBoolean(useTimeKey, useTimeDef),
+        minMs = p.getInt(minMinKey, minMinDef) * 60_000L,
+        maxMs = p.getInt(maxMinKey, maxMinDef) * 60_000L,
     )
 
     fun weightBy(p: SharedPreferences): String = p.getString(WEIGHT_BY, WEIGHT_FAVORITES) ?: WEIGHT_FAVORITES

@@ -23,7 +23,10 @@ shared as APK files. For changes in the app itself, see the
   Each mode has its own options. A separate No repeats switch works with any mode and keeps its
   history between sessions, with a Reset shuffle history button. General options: reshuffle when
   the queue repeats with Repeat all, leave out songs shorter than a set length, and whether
-  skipped songs count as played. versionCode 10710 on the `feature/shuffle-modes` branch.
+  skipped songs count as played. Every block mode (folder or album, genre, artist) can end a
+  block by number of songs, by time, or both, each with its own switch and min/max. With both
+  on, the block ends at whichever limit is reached first. versionCode 10712 on the
+  `feature/shuffle-modes` branch.
 
 ## [7.0.3-custom.3] - 2026-10-20 (versionCode 10705)
 

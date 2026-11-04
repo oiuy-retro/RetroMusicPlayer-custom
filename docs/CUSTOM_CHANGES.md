@@ -194,16 +194,26 @@ repeats off, minimum length 0), the original `ShuffleHelper` code runs, so the d
 unchanged. If building the order fails for any reason, it also falls back to the original code.
 
 - **True random**: every order is equally likely.
+- **Block length (all block modes)**: each block mode has two limits, each with its own switch:
+  number of songs (min/max) and time (min/max minutes). For each block a random target is picked
+  between min and max for every limit that's on. Songs are added while the block is below all of
+  its targets, so the block ends at whichever is reached first. Time counts the durations of the
+  songs in the block, and the song that crosses the time target plays in full. A group smaller
+  than the targets plays all of its songs. If both switches are off, the song limit is used.
+  Defaults: folder/album and artist blocks use songs only (3 to 6; time 15 to 30 min when turned
+  on), genre blocks use time only (20 to 40 min; songs 5 to 10 when turned on). Existing settings
+  keep their keys (`shuffle_group_min/max`, `shuffle_artist_min/max`,
+  `shuffle_genre_min/max_minutes`), so earlier values carry over unchanged. New keys:
+  `shuffle_{group,artist,genre}_use_songs`, `shuffle_{group,artist,genre}_use_time`,
+  `shuffle_{group,artist}_min/max_minutes` and `shuffle_genre_min/max` (songs). All block modes
+  share `ShuffleEngine.countBlocks` with a `BlockLimits` value.
 - **Folder or album blocks**: the grouping is the album (`albumId`) or the song's parent folder
-  (taken from the file path). A random song is picked, then a random count between min and max
-  (default 3 to 6) is taken from its group, or the whole group if it's smaller. "In order from the
-  first pick" continues by track number (album) or file path (folder) from the pick and wraps to
-  the group's earlier songs. "Random within block" takes random songs from the group. The next
-  pick prefers a different group.
+  (taken from the file path). A random song is picked, then songs from its group follow until the
+  block limits are reached. "In order from the first pick" continues by track number (album) or
+  file path (folder) from the pick and wraps to the group's earlier songs. "Random within block"
+  takes random songs from the group. The next pick prefers a different group.
 - **Genre blocks**: a random song is picked and random songs of the same genre follow until the
-  block's total length reaches a target. The target is chosen randomly between min and max
-  minutes (default 20 to 40) for each block, and it's counted from song durations. The song that
-  crosses the target plays in full. The next pick prefers a different genre. Genres come from
+  block limits are reached. The next pick prefers a different genre. Genres come from
   MediaStore (the `GENRE` column on Android 11 and newer, the genre tables on older versions).
   Untagged songs form an "Unknown" group, or can be left out.
 - **Artist blocks**: like album blocks, grouped by the song's first artist after this fork's `;`

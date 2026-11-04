@@ -39,17 +39,28 @@ enum class ShuffleMode { TRUE_RANDOM, GROUP_BLOCKS, GENRE_BLOCKS, ARTIST_BLOCKS,
 
 enum class BlockGrouping { ALBUM, FOLDER }
 
+/**
+ * When a block ends. Each limit has its own switch. With both on, the block ends at whichever
+ * target is reached first. With both off, the song limit is used (so a block always ends).
+ * A random target is picked between min and max for each limit, once per block.
+ */
+data class BlockLimits(
+    val useSongs: Boolean = true,
+    val minSongs: Int = 3,
+    val maxSongs: Int = 6,
+    val useTime: Boolean = false,
+    val minMs: Long = 20 * 60_000L,
+    val maxMs: Long = 40 * 60_000L,
+)
+
 data class ShuffleConfig(
     val mode: ShuffleMode = ShuffleMode.TRUE_RANDOM,
     val grouping: BlockGrouping = BlockGrouping.ALBUM,
-    val groupMinSongs: Int = 3,
-    val groupMaxSongs: Int = 6,
+    val groupLimits: BlockLimits = BlockLimits(),
     val groupInOrder: Boolean = true,
-    val artistMinSongs: Int = 3,
-    val artistMaxSongs: Int = 6,
+    val artistLimits: BlockLimits = BlockLimits(),
     val artistInOrder: Boolean = false,
-    val genreMinMs: Long = 20 * 60_000L,
-    val genreMaxMs: Long = 40 * 60_000L,
+    val genreLimits: BlockLimits = BlockLimits(useSongs = false, minSongs = 5, maxSongs = 10, useTime = true),
     val genreExcludeUnknown: Boolean = false,
     val artistGap: Int = 5,
     /** 0 = no bias (plain random), 10 = strongest bias. */
@@ -92,18 +103,29 @@ object ShuffleEngine {
                 } else {
                     compareBy { tracks[it].path }
                 }
-                countBlocks(tracks, current, pool, key, sort, config.groupMinSongs, config.groupMaxSongs, config.groupInOrder, random)
+                countBlocks(tracks, current, pool, key, sort, config.groupLimits, config.groupInOrder, random)
             }
             ShuffleMode.ARTIST_BLOCKS -> countBlocks(
                 tracks, current, pool, { it.primaryArtist },
                 compareBy({ tracks[it].albumKey }, { tracks[it].trackNumber }, { tracks[it].path }),
-                config.artistMinSongs, config.artistMaxSongs, config.artistInOrder, random
+                config.artistLimits, config.artistInOrder, random
             )
-            ShuffleMode.GENRE_BLOCKS -> genreBlocks(tracks, current, pool, config, random)
+            ShuffleMode.GENRE_BLOCKS -> {
+                // Genre blocks pick block members at random. "Exclude unknown" drops untagged songs
+                // (never the current one).
+                val usable = if (config.genreExcludeUnknown) pool.filter { tracks[it].genreKey != null } else pool
+                countBlocks(tracks, current, usable, { it.genreKey ?: "\u0000unknown" },
+                    compareBy { tracks[it].path }, config.genreLimits, false, random)
+            }
             ShuffleMode.SPREAD_ARTISTS -> spreadArtists(tracks, current, pool, config.artistGap, random)
             ShuffleMode.WEIGHTED -> head + weighted(tracks, pool, config.weightStrength, random)
             ShuffleMode.SPOTIFY -> head + spotify(tracks, pool, random)
         }
+    }
+
+    private fun randomBetweenMs(a: Long, b: Long, random: Random): Long {
+        val lo = max(0L, min(a, b)); val hi = max(lo, max(a, b))
+        return if (hi > lo) random.nextLong(lo, hi + 1) else lo
     }
 
     private fun randomBetween(a: Int, b: Int, random: Random): Int {
@@ -112,9 +134,10 @@ object ShuffleEngine {
     }
 
     /**
-     * Album/folder/artist blocks: pick a random song, play between min and max songs of its
-     * group (all of it if the group is smaller), then pick a random song from a different
-     * group. In-order blocks continue forward from the pick in the group's natural order,
+     * Album/folder/artist/genre blocks: pick a random song, then keep adding songs of its group
+     * until the block reaches its song target or its time target, whichever comes first (all of
+     * the group if it is smaller). Time counts song lengths; the song that crosses the time target
+     * is kept whole. Then pick a random song from a different group. In-order blocks continue forward from the pick in the group's natural order,
      * wrapping to the group's earlier songs if needed.
      */
     internal fun countBlocks(
@@ -123,8 +146,7 @@ object ShuffleEngine {
         pool: List<Int>,
         key: (ShuffleTrack) -> String,
         naturalOrder: Comparator<Int>,
-        minSongs: Int,
-        maxSongs: Int,
+        limits: BlockLimits,
         inOrder: Boolean,
         random: Random,
     ): List<Int> {
@@ -153,66 +175,24 @@ object ShuffleEngine {
             val all = (members + pick).distinct().sortedWith(naturalOrder)
             val pickPos = all.indexOf(pick)
             take(pick)
-            val size = randomBetween(minSongs, maxSongs, random)
-            val extra = min(size - 1, members.size)
-            if (extra > 0) {
-                val chosen: List<Int> = if (inOrder) {
-                    val after = all.drop(pickPos + 1) + all.take(pickPos)
-                    after.take(extra)
-                } else {
-                    members.shuffled(random).take(extra)
-                }
-                chosen.forEach { take(it) }
-            }
-            lastGroup = g
-        }
-        return result
-    }
-
-    /**
-     * Genre blocks: pick a random song, keep adding random songs of its genre until the block's
-     * total duration (a random target between min and max) is reached. The song that crosses the
-     * target is kept whole. Then pick again, preferring a different genre.
-     */
-    internal fun genreBlocks(
-        tracks: List<ShuffleTrack>,
-        current: Int,
-        pool: List<Int>,
-        config: ShuffleConfig,
-        random: Random,
-    ): List<Int> {
-        val unknown = "\u0000unknown"
-        val usable = if (config.genreExcludeUnknown) pool.filter { tracks[it].genreKey != null } else pool
-        fun g(i: Int) = tracks[i].genreKey ?: unknown
-        val groups = HashMap<String, MutableList<Int>>()
-        val shuffled = usable.shuffled(random)
-        for (i in shuffled) groups.getOrPut(g(i)) { mutableListOf() }.add(i)
-        val removed = HashSet<Int>()
-        val remaining = shuffled.toMutableList()
-        val result = ArrayList<Int>()
-        val lo = min(config.genreMinMs, config.genreMaxMs)
-        val hi = max(config.genreMinMs, config.genreMaxMs)
-        var lastGenre: String? = null
-        var firstPick = current
-        while (true) {
-            val pick: Int = if (firstPick >= 0) {
-                firstPick.also { firstPick = -1 }
-            } else {
-                remaining.removeAll { it in removed }
-                if (remaining.isEmpty()) break
-                remaining.firstOrNull { g(it) != lastGenre } ?: remaining.first()
-            }
-            val genre = g(pick)
-            val target = if (hi > lo) random.nextLong(lo, hi + 1) else lo
-            result.add(pick); removed.add(pick); groups[genre]?.remove(pick)
+            val useSongs = limits.useSongs || !limits.useTime
+            val songTarget = if (useSongs) randomBetween(limits.minSongs, limits.maxSongs, random) else Int.MAX_VALUE
+            val timeTarget = if (limits.useTime) randomBetweenMs(limits.minMs, limits.maxMs, random) else Long.MAX_VALUE
+            var count = 1
             var elapsed = tracks[pick].durationMs
-            val members = groups[genre] ?: mutableListOf()
-            while (elapsed < target && members.isNotEmpty()) {
-                val next = members.removeAt(0) // already in random order
-                result.add(next); removed.add(next)
+            val candidates: List<Int> = if (inOrder) {
+                all.drop(pickPos + 1) + all.take(pickPos)
+            } else {
+                members.shuffled(random)
+            }
+            for (next in candidates) {
+                // Add a song only while the block is below both targets: whichever is reached first ends it.
+                if (count >= songTarget || elapsed >= timeTarget) break
+                take(next)
+                count++
                 elapsed += tracks[next].durationMs
             }
-            lastGenre = genre
+            lastGroup = g
         }
         return result
     }
