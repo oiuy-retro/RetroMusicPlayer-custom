@@ -66,7 +66,6 @@ class AlbumsFragment : AbsRecyclerViewCustomGridSizeFragment<AlbumAdapter, GridL
                 MusicPlayerRemote.openAndShuffleQueue(it.flatMap { album -> album.songs }, true)
                 return
             }
-            MusicPlayerRemote.setShuffleMode(MusicService.SHUFFLE_MODE_NONE)
             MusicPlayerRemote.openQueue(
                 queue = it.shuffled().flatMap { album -> album.songs },
                 startPosition = 0,

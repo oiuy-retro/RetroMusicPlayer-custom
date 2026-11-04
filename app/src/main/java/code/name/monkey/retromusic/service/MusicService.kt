@@ -813,29 +813,40 @@ class MusicService : MediaBrowserServiceCompat(),
         return true
     }
 
+    /**
+     * Opens [playingQueue] and starts at [startPosition]. [shuffleMode] (default: the current
+     * mode) is applied in the same step, so a shuffled queue is built exactly once, with the
+     * start song at position 0, and the position is set before playback is started on another
+     * thread (no race with the queue the UI shows).
+     */
     fun openQueue(
         playingQueue: List<Song>?,
         startPosition: Int,
         startPlaying: Boolean,
+        shuffleMode: Int = this.shuffleMode,
     ) {
-        if (!playingQueue.isNullOrEmpty()
-            && startPosition >= 0 && startPosition < playingQueue.size
-        ) {
-            // it is important to copy the playing queue here first as we might add/remove songs later
-            originalPlayingQueue = ArrayList(playingQueue)
-            this.playingQueue = ArrayList(originalPlayingQueue)
-            var position = startPosition
-            if (shuffleMode == SHUFFLE_MODE_SHUFFLE) {
-                makeShuffleList(this, this.playingQueue, startPosition)
-                position = 0
+        if (playingQueue.isNullOrEmpty()) return
+        val opened = QueueOpener.open(
+            playingQueue, startPosition, shuffleMode == SHUFFLE_MODE_SHUFFLE
+        ) { list, current -> makeShuffleList(this, list, current) } ?: return
+        val modeChanged = this.shuffleMode != shuffleMode
+        if (modeChanged) {
+            this.shuffleMode = shuffleMode
+            PreferenceManager.getDefaultSharedPreferences(this).edit {
+                putInt(SAVED_SHUFFLE_MODE, shuffleMode)
             }
-            if (startPlaying) {
-                playSongAt(position)
-            } else {
-                setPosition(position)
-            }
-            notifyChange(QUEUE_CHANGED)
         }
+        // it is important to copy the playing queue here first as we might add/remove songs later
+        originalPlayingQueue = opened.original
+        this.playingQueue = opened.playing
+        this.position = opened.position
+        if (startPlaying) {
+            playSongAt(opened.position)
+        } else {
+            setPosition(opened.position)
+        }
+        if (modeChanged) handleAndSendChangeInternal(SHUFFLE_MODE_CHANGED)
+        notifyChange(QUEUE_CHANGED)
     }
 
     @Synchronized
@@ -1338,10 +1349,9 @@ class MusicService : MediaBrowserServiceCompat(),
             if (playlistSongs.isNotEmpty()) {
                 if (shuffleMode == SHUFFLE_MODE_SHUFFLE) {
                     val startPosition = Random().nextInt(playlistSongs.size)
-                    openQueue(playlistSongs, startPosition, true)
-                    setShuffleMode(shuffleMode)
+                    openQueue(playlistSongs, startPosition, true, SHUFFLE_MODE_SHUFFLE)
                 } else {
-                    openQueue(playlistSongs, 0, true)
+                    openQueue(playlistSongs, 0, true, shuffleMode)
                 }
             } else {
                 runOnUiThread {

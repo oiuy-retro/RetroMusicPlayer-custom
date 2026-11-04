@@ -218,6 +218,13 @@ unchanged. If building the order fails for any reason, it also falls back to the
   `pref_shuffle.xml`. `FabShufflePathTest` (Robolectric) runs `ShuffleHelper.makeShuffleList`
   with prefs stored as the settings screen stores them, twice in a row as the Songs tab button
   does (`openQueue` with shuffle on, then `setShuffleMode`).
+- **Opening a queue**: `MusicService.openQueue(queue, start, startPlaying, shuffleMode)` applies
+  the shuffle mode in the same step (`service/QueueOpener.kt`, unit tested). Before, `MusicPlayerRemote.doOpenQueue`
+  called `openQueue` (which shuffled if shuffle was on) and then `setShuffleMode`, which shuffled
+  again around a stale position while playback started on another thread. Now the queue is
+  shuffled once, the start song is at position 0, and `position` is set before playback starts.
+  The player's shuffle toggle still uses `setShuffleMode` (on: reshuffle around the current song;
+  off: back to the original order).
 - **Folder or album blocks**: the grouping is the album (`albumId`) or the song's parent folder
   (taken from the file path). A random song is picked, then songs from its group follow until the
   block limits are reached. "In order from the first pick" continues by track number (album) or

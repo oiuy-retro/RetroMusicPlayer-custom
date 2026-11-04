@@ -31,8 +31,11 @@ shared as APK files. For changes in the app itself, see the
   songs after the current one. Fixed in 10714: on the Shuffle page the "Maximum songs per block"
   slider (Folder/album and Artist blocks) sat below the time sliders and stayed active when the
   song limit was off; Genre's maximum minutes also stayed active with the time limit off. Each
-  limit now shows as switch, minimum, maximum. versionCode 10714 on the `feature/shuffle-modes`
-  branch.
+  limit now shows as switch, minimum, maximum. Fixed in 10715: starting a shuffled list (Songs
+  tab button, Albums/Artists tab buttons, shuffle all, album/artist/playlist pages, shortcuts,
+  Android Auto) shuffled the queue twice and could leave the playing song out of step with Up
+  Next. The queue is now shuffled once, with the starting song first. versionCode 10715 on the
+  `feature/shuffle-modes` branch.
 
 ## [7.0.3-custom.3] - 2026-10-20 (versionCode 10705)
 
