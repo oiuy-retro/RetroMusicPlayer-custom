@@ -46,11 +46,11 @@ enum class BlockGrouping { ALBUM, FOLDER }
  */
 data class BlockLimits(
     val useSongs: Boolean = true,
-    val minSongs: Int = 3,
-    val maxSongs: Int = 6,
+    val minSongs: Int = 2,
+    val maxSongs: Int = 4,
     val useTime: Boolean = false,
-    val minMs: Long = 20 * 60_000L,
-    val maxMs: Long = 40 * 60_000L,
+    val minMs: Long = 7 * 60_000L,
+    val maxMs: Long = 15 * 60_000L,
 )
 
 data class ShuffleConfig(
@@ -60,7 +60,7 @@ data class ShuffleConfig(
     val groupInOrder: Boolean = true,
     val artistLimits: BlockLimits = BlockLimits(),
     val artistInOrder: Boolean = false,
-    val genreLimits: BlockLimits = BlockLimits(useSongs = false, minSongs = 5, maxSongs = 10, useTime = true),
+    val genreLimits: BlockLimits = BlockLimits(useSongs = false, useTime = true),
     val genreExcludeUnknown: Boolean = false,
     val artistGap: Int = 5,
     /** 0 = no bias (plain random), 10 = strongest bias. */

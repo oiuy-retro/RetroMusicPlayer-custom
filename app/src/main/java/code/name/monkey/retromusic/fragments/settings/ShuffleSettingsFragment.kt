@@ -74,3 +74,4 @@ class ShuffleSettingsFragment : AbsSettingsFragment() {
         max.setOnPreferenceChangeListener { _, v -> if ((v as Int) < min.value) min.value = v; true }
     }
 }
+

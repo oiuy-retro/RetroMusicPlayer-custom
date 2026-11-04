@@ -40,7 +40,7 @@
             android:summary="@string/pref_summary_shuffle_use_songs"
             android:title="@string/pref_title_shuffle_use_songs" />
         <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
-            android:defaultValue="3"
+            android:defaultValue="2"
             android:dependency="shuffle_group_use_songs"
             android:key="shuffle_group_min"
             android:layout="@layout/list_item_view_seekbar"
@@ -52,7 +52,7 @@
             app:showSeekBarValue="true" />
         <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
             android:dependency="shuffle_group_use_songs"
-            android:defaultValue="6"
+            android:defaultValue="4"
             android:key="shuffle_group_max"
             android:layout="@layout/list_item_view_seekbar"
             android:max="50"
@@ -67,7 +67,7 @@
             android:summary="@string/pref_summary_shuffle_use_time"
             android:title="@string/pref_title_shuffle_use_time" />
         <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
-            android:defaultValue="15"
+            android:defaultValue="7"
             android:dependency="shuffle_group_use_time"
             android:key="shuffle_group_min_minutes"
             android:layout="@layout/list_item_view_seekbar"
@@ -78,7 +78,7 @@
             android:summary="@string/pref_summary_shuffle_genre_minutes"
             app:showSeekBarValue="true" />
         <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
-            android:defaultValue="30"
+            android:defaultValue="15"
             android:dependency="shuffle_group_use_time"
             android:key="shuffle_group_max_minutes"
             android:layout="@layout/list_item_view_seekbar"
@@ -111,7 +111,7 @@
             android:summary="@string/pref_summary_shuffle_use_songs"
             android:title="@string/pref_title_shuffle_use_songs" />
         <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
-            android:defaultValue="5"
+            android:defaultValue="2"
             android:dependency="shuffle_genre_use_songs"
             android:key="shuffle_genre_min"
             android:layout="@layout/list_item_view_seekbar"
@@ -122,7 +122,7 @@
             android:summary="@string/pref_summary_shuffle_block_songs"
             app:showSeekBarValue="true" />
         <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
-            android:defaultValue="10"
+            android:defaultValue="4"
             android:dependency="shuffle_genre_use_songs"
             android:key="shuffle_genre_max"
             android:layout="@layout/list_item_view_seekbar"
@@ -138,7 +138,7 @@
             android:summary="@string/pref_summary_shuffle_use_time"
             android:title="@string/pref_title_shuffle_use_time" />
         <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
-            android:defaultValue="20"
+            android:defaultValue="7"
             android:dependency="shuffle_genre_use_time"
             android:key="shuffle_genre_min_minutes"
             android:layout="@layout/list_item_view_seekbar"
@@ -149,7 +149,7 @@
             android:summary="@string/pref_summary_shuffle_genre_minutes"
             app:showSeekBarValue="true" />
         <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
-            android:defaultValue="40"
+            android:defaultValue="15"
             android:dependency="shuffle_genre_use_time"
             android:key="shuffle_genre_max_minutes"
             android:layout="@layout/list_item_view_seekbar"
@@ -178,7 +178,7 @@
             android:summary="@string/pref_summary_shuffle_use_songs"
             android:title="@string/pref_title_shuffle_use_songs" />
         <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
-            android:defaultValue="3"
+            android:defaultValue="2"
             android:dependency="shuffle_artist_use_songs"
             android:key="shuffle_artist_min"
             android:layout="@layout/list_item_view_seekbar"
@@ -190,7 +190,7 @@
             app:showSeekBarValue="true" />
         <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
             android:dependency="shuffle_artist_use_songs"
-            android:defaultValue="6"
+            android:defaultValue="4"
             android:key="shuffle_artist_max"
             android:layout="@layout/list_item_view_seekbar"
             android:max="50"
@@ -205,7 +205,7 @@
             android:summary="@string/pref_summary_shuffle_use_time"
             android:title="@string/pref_title_shuffle_use_time" />
         <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
-            android:defaultValue="15"
+            android:defaultValue="7"
             android:dependency="shuffle_artist_use_time"
             android:key="shuffle_artist_min_minutes"
             android:layout="@layout/list_item_view_seekbar"
@@ -216,7 +216,7 @@
             android:summary="@string/pref_summary_shuffle_genre_minutes"
             app:showSeekBarValue="true" />
         <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
-            android:defaultValue="30"
+            android:defaultValue="15"
             android:dependency="shuffle_artist_use_time"
             android:key="shuffle_artist_max_minutes"
             android:layout="@layout/list_item_view_seekbar"

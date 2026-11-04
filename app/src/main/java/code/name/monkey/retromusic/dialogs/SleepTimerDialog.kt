@@ -75,6 +75,7 @@ class SleepTimerDialog : DialogFragment() {
 
         binding.seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, i: Int, b: Boolean) {
+                code.name.monkey.appthemehelper.util.SliderHaptics.onValue(seekBar, i.toFloat(), b)
                 if (i < 1) {
                     seekBar.progress = 1
                     return

@@ -200,8 +200,9 @@ unchanged. If building the order fails for any reason, it also falls back to the
   its targets, so the block ends at whichever is reached first. Time counts the durations of the
   songs in the block, and the song that crosses the time target plays in full. A group smaller
   than the targets plays all of its songs. If both switches are off, the song limit is used.
-  Defaults: folder/album and artist blocks use songs only (3 to 6; time 15 to 30 min when turned
-  on), genre blocks use time only (20 to 40 min; songs 5 to 10 when turned on). Existing settings
+  Defaults (since 10716): 2 to 4 songs and 7 to 15 minutes for every block mode. Folder/album and
+  artist blocks have the song limit on and the time limit off; genre blocks the other way round.
+  Saved values are never overwritten. Existing settings
   keep their keys (`shuffle_group_min/max`, `shuffle_artist_min/max`,
   `shuffle_genre_min/max_minutes`), so earlier values carry over unchanged. New keys:
   `shuffle_{group,artist,genre}_use_songs`, `shuffle_{group,artist,genre}_use_time`,
@@ -225,6 +226,16 @@ unchanged. If building the order fails for any reason, it also falls back to the
   shuffled once, the start song is at position 0, and `position` is set before playback starts.
   The player's shuffle toggle still uses `setShuffleMode` (on: reshuffle around the current song;
   off: back to the original order).
+- **Slider haptics**: one shared helper, `appthemehelper/.../util/SliderHaptics.kt`, adapted
+  from HeliBoard-custom's `performSliderStepHaptic` (Apache-2.0, see `THIRD_PARTY_NOTICES.md`).
+  Per step: `performHapticFeedback` (`SEGMENT_FREQUENT_TICK` on API 34+, `TEXT_HANDLE_MOVE` on
+  8.1+, else `CLOCK_TICK`) with `FLAG_IGNORE_GLOBAL_SETTING`, plus a 5 ms vibration at amplitude
+  65, at most once per 12 ms. Like HeliBoard, it ignores the system touch-vibration switch and
+  uses the existing VIBRATE permission. Hooked into `ATESeekBarPreference` (all settings
+  sliders, via the value label), the player seek bars (`AbsPlayerControlsFragment`, Circle,
+  Gradient, Classic, Drive mode; one tick per 5 s), the player volume slider (`VolumeFragment`),
+  Circle's volume ring, the sleep timer, playback speed/pitch and the audio fade duration
+  dialog.
 - **Folder or album blocks**: the grouping is the album (`albumId`) or the song's parent folder
   (taken from the file path). A random song is picked, then songs from its group follow until the
   block limits are reached. "In order from the first pick" continues by track number (album) or

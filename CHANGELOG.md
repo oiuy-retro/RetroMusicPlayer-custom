@@ -34,8 +34,11 @@ shared as APK files. For changes in the app itself, see the
   limit now shows as switch, minimum, maximum. Fixed in 10715: starting a shuffled list (Songs
   tab button, Albums/Artists tab buttons, shuffle all, album/artist/playlist pages, shortcuts,
   Android Auto) shuffled the queue twice and could leave the playing song out of step with Up
-  Next. The queue is now shuffled once, with the starting song first. versionCode 10715 on the
-  `feature/shuffle-modes` branch.
+  Next. The queue is now shuffled once, with the starting song first. In 10716: every slider
+  in the app gives a short tick per step while dragging, the same as HeliBoard's settings
+  sliders (settings sliders, player seek bars, player volume, sleep timer, playback speed and
+  pitch, audio fade; the seek bars tick every 5 seconds). The block defaults are 2 to 4 songs and 7 to 15 minutes for every block mode (values you
+  already changed are kept). versionCode 10716.
 
 ## [7.0.3-custom.3] - 2026-10-20 (versionCode 10705)
 

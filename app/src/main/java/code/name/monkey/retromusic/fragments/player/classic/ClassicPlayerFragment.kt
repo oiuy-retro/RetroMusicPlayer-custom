@@ -470,6 +470,7 @@ class ClassicPlayerFragment : AbsPlayerFragment(R.layout.fragment_classic_player
         binding.playerControlsContainer.progressSlider.setOnSeekBarChangeListener(object :
             SimpleOnSeekbarChangeListener() {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                code.name.monkey.appthemehelper.util.SliderHaptics.onValue(seekBar, progress.toFloat(), fromUser, code.name.monkey.appthemehelper.util.SliderHaptics.SEEK_STEP_MS)
                 if (fromUser) {
                     MusicPlayerRemote.seekTo(progress)
                     onUpdateProgressViews(
