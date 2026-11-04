@@ -87,6 +87,33 @@
             app:ateKey_pref_unit=" min"
             android:title="@string/pref_title_shuffle_max_minutes"
             app:showSeekBarValue="true" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESwitchPreference
+            android:defaultValue="false"
+            android:key="shuffle_group_use_percent"
+            android:layout="@layout/list_item_view_switch"
+            android:summary="@string/pref_summary_shuffle_use_percent"
+            android:title="@string/pref_title_shuffle_use_percent" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+            android:defaultValue="25"
+            android:dependency="shuffle_group_use_percent"
+            android:key="shuffle_group_min_percent"
+            android:layout="@layout/list_item_view_seekbar"
+            android:max="100"
+            app:min="1"
+            app:ateKey_pref_unit="%"
+            android:title="@string/pref_title_shuffle_min_percent"
+            android:summary="@string/pref_summary_shuffle_percent"
+            app:showSeekBarValue="true" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+            android:defaultValue="50"
+            android:dependency="shuffle_group_use_percent"
+            android:key="shuffle_group_max_percent"
+            android:layout="@layout/list_item_view_seekbar"
+            android:max="100"
+            app:min="1"
+            app:ateKey_pref_unit="%"
+            android:title="@string/pref_title_shuffle_max_percent"
+            app:showSeekBarValue="true" />
         <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEListPreference
             android:defaultValue="in_order"
             android:entries="@array/pref_shuffle_order_titles"

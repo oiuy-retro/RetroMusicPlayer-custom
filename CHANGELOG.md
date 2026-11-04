@@ -11,6 +11,12 @@ shared as APK files. For changes in the app itself, see the
 
 ## [Unreleased]
 
+### Added (branch `feature/shuffle-percent-limit`, versionCode 10717)
+- Folder or album blocks have a third limit, **Limit by percent of album/folder** (off by default,
+  25 to 50 %). Each block gets a random percent in that range of its album's or folder's size,
+  rounded up to at least 1 song. With other limits on, the block ends at whichever is reached
+  first.
+
 ### Added
 - Documentation for the custom build: README, this changelog, `docs/BUILDING.md`,
   `docs/CUSTOM_CHANGES.md`, `docs/UPDATING_FROM_UPSTREAM.md` and `retro.properties.example`.

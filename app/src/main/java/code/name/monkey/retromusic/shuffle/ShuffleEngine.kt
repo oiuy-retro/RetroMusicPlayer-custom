@@ -51,6 +51,10 @@ data class BlockLimits(
     val useTime: Boolean = false,
     val minMs: Long = 7 * 60_000L,
     val maxMs: Long = 15 * 60_000L,
+    /** Percent of the group (album/folder) size; only offered for Folder/album blocks. */
+    val usePercent: Boolean = false,
+    val minPercent: Int = 25,
+    val maxPercent: Int = 50,
 )
 
 data class ShuffleConfig(
@@ -123,6 +127,10 @@ object ShuffleEngine {
         }
     }
 
+    /** [percent] of a group of [size] songs, rounded up, at least 1. */
+    internal fun percentToSongs(size: Int, percent: Int): Int =
+        max(1, (size.toLong() * percent + 99).div(100).toInt())
+
     private fun randomBetweenMs(a: Long, b: Long, random: Random): Long {
         val lo = max(0L, min(a, b)); val hi = max(lo, max(a, b))
         return if (hi > lo) random.nextLong(lo, hi + 1) else lo
@@ -153,6 +161,10 @@ object ShuffleEngine {
         val groups = LinkedHashMap<String, MutableList<Int>>()
         for (i in pool) groups.getOrPut(key(tracks[i])) { mutableListOf() }.add(i)
         groups.values.forEach { it.sortWith(naturalOrder) }
+        // Group sizes before any song is taken (the current song counts toward its group).
+        val groupSize = HashMap<String, Int>()
+        groups.forEach { (k, v) -> groupSize[k] = v.size }
+        if (current >= 0) groupSize.merge(key(tracks[current]), 1, Int::plus)
         val remaining = pool.toMutableList().also { it.shuffle(random) }
         val removed = HashSet<Int>()
         val result = ArrayList<Int>(pool.size + 1)
@@ -175,8 +187,13 @@ object ShuffleEngine {
             val all = (members + pick).distinct().sortedWith(naturalOrder)
             val pickPos = all.indexOf(pick)
             take(pick)
-            val useSongs = limits.useSongs || !limits.useTime
-            val songTarget = if (useSongs) randomBetween(limits.minSongs, limits.maxSongs, random) else Int.MAX_VALUE
+            // If every limit is off, the song limit is used.
+            val useSongs = limits.useSongs || (!limits.useTime && !limits.usePercent)
+            var songTarget = if (useSongs) randomBetween(limits.minSongs, limits.maxSongs, random) else Int.MAX_VALUE
+            if (limits.usePercent) {
+                val pct = randomBetween(limits.minPercent.coerceIn(1, 100), limits.maxPercent.coerceIn(1, 100), random)
+                songTarget = min(songTarget, percentToSongs(groupSize[g] ?: 1, pct))
+            }
             val timeTarget = if (limits.useTime) randomBetweenMs(limits.minMs, limits.maxMs, random) else Long.MAX_VALUE
             var count = 1
             var elapsed = tracks[pick].durationMs

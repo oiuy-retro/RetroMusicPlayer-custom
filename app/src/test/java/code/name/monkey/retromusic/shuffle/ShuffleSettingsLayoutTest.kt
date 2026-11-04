@@ -32,6 +32,10 @@ class ShuffleSettingsLayoutTest {
                     "shuffle_${m}_use_time" to "", minT to "shuffle_${m}_use_time", maxT to "shuffle_${m}_use_time"),
                 keys.subList(i, i + 6))
         }
+        val i = keys.indexOfFirst { it.first == "shuffle_group_max_minutes" }
+        assertEquals(listOf("shuffle_group_use_percent" to "",
+            "shuffle_group_min_percent" to "shuffle_group_use_percent",
+            "shuffle_group_max_percent" to "shuffle_group_use_percent"), keys.subList(i + 1, i + 4))
         check("group", "shuffle_group_min", "shuffle_group_max", "shuffle_group_min_minutes", "shuffle_group_max_minutes")
         check("artist", "shuffle_artist_min", "shuffle_artist_max", "shuffle_artist_min_minutes", "shuffle_artist_max_minutes")
         check("genre", "shuffle_genre_min", "shuffle_genre_max", "shuffle_genre_min_minutes", "shuffle_genre_max_minutes")

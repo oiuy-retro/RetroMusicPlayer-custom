@@ -560,6 +560,11 @@
     <string name="pref_summary_shuffle_use_songs">With both limits on, the block ends at whichever is reached first</string>
     <string name="pref_title_shuffle_use_time">Limit by time</string>
     <string name="pref_summary_shuffle_use_time">With both limits on, the block ends at whichever is reached first</string>
+    <string name="pref_title_shuffle_use_percent">Limit by percent of album/folder</string>
+    <string name="pref_summary_shuffle_use_percent">Plays part of each album or folder. With other limits on, the block ends at whichever is reached first</string>
+    <string name="pref_title_shuffle_min_percent">Minimum percent per block</string>
+    <string name="pref_title_shuffle_max_percent">Maximum percent per block</string>
+    <string name="pref_summary_shuffle_percent">Of the album or folder\'s songs, rounded up to at least 1 song</string>
     <string name="pref_title_shuffle_min_minutes">Minimum minutes per block</string>
     <string name="pref_title_shuffle_max_minutes">Maximum minutes per block</string>
     <string name="pref_title_shuffle_genre_min">Minimum minutes per genre</string>

@@ -226,6 +226,11 @@ unchanged. If building the order fails for any reason, it also falls back to the
   shuffled once, the start song is at position 0, and `position` is set before playback starts.
   The player's shuffle toggle still uses `setShuffleMode` (on: reshuffle around the current song;
   off: back to the original order).
+- **Percent limit (Folder/album blocks only)**: `shuffle_group_use_percent` (default off),
+  `shuffle_group_min_percent` / `shuffle_group_max_percent` (1 to 100, default 25 to 50). For each
+  block a random percent in the range is turned into a song count from the group's full size
+  (`ShuffleEngine.percentToSongs`, rounded up, at least 1) and combined with the song target by
+  taking the smaller. If every limit is off, the song limit is used.
 - **Slider haptics**: one shared helper, `appthemehelper/.../util/SliderHaptics.kt`, adapted
   from HeliBoard-custom's `performSliderStepHaptic` (Apache-2.0, see `THIRD_PARTY_NOTICES.md`).
   Per step: `performHapticFeedback` (`SEGMENT_FREQUENT_TICK` on API 34+, `TEXT_HANDLE_MOVE` on
