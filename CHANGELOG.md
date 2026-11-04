@@ -17,6 +17,28 @@ shared as APK files. For changes in the app itself, see the
   The upstream README is now in `docs/UPSTREAM_README.md`.
 - `.gitignore` entries for signing files (`retro.properties`, `*.jks`, `*.keystore`,
   `keystore.properties`, `public.properties`).
+- A **Shuffle** settings page (Settings > Shuffle) with a choice of shuffle modes: True random
+  (the original shuffle and the default), Folder or album blocks, Genre blocks, Artist blocks,
+  Spread out artists, Weighted (favorites, most played or least played) and Spotify-style.
+  Each mode has its own options. A separate No repeats switch works with any mode and keeps its
+  history between sessions, with a Reset shuffle history button. General options: reshuffle when
+  the queue repeats with Repeat all, leave out songs shorter than a set length, and whether
+  skipped songs count as played. Every block mode (folder or album, genre, artist) can end a
+  block by number of songs, by time, or both, each with its own switch and min/max. With both
+  on, the block ends at whichever limit is reached first. The shuffle buttons on the Albums and
+  Artists tabs use the chosen shuffle mode (before, they always played whole albums or artists
+  in a random album/artist order). Changing a shuffle setting while shuffle is on reshuffles the
+  songs after the current one. Fixed in 10714: on the Shuffle page the "Maximum songs per block"
+  slider (Folder/album and Artist blocks) sat below the time sliders and stayed active when the
+  song limit was off; Genre's maximum minutes also stayed active with the time limit off. Each
+  limit now shows as switch, minimum, maximum. Fixed in 10715: starting a shuffled list (Songs
+  tab button, Albums/Artists tab buttons, shuffle all, album/artist/playlist pages, shortcuts,
+  Android Auto) shuffled the queue twice and could leave the playing song out of step with Up
+  Next. The queue is now shuffled once, with the starting song first. In 10716: every slider
+  in the app gives a short tick per step while dragging, the same as HeliBoard's settings
+  sliders (settings sliders, player seek bars, player volume, sleep timer, playback speed and
+  pitch, audio fade; the seek bars tick every 5 seconds). The block defaults are 2 to 4 songs and 7 to 15 minutes for every block mode (values you
+  already changed are kept). versionCode 10716.
 
 ## [7.0.3-custom.3] - 2026-10-20 (versionCode 10705)
 

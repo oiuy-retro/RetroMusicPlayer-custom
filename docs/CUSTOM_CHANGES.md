@@ -165,3 +165,125 @@ with that raw id shows the combined entry as upstream did.
 
 `Artist.name` now prefers `displayName`. The unknown-artist and Various Artists display mapping
 still applies.
+
+## Shuffle modes
+
+Settings > Shuffle (`fragments/settings/ShuffleSettingsFragment.kt`, `res/xml/pref_shuffle.xml`)
+chooses how the queue is reordered when shuffle is turned on or a shuffled queue is started.
+
+### Files
+
+| File | Change |
+|---|---|
+| `shuffle/ShuffleEngine.kt` (new) | The algorithms. Pure Kotlin, no Android types; tested in `app/src/test/.../shuffle/ShuffleEngineTest.kt` with fake songs and a seeded `Random`. |
+| `shuffle/ShuffleQueueBuilder.kt` (new) | Reads settings and library data, converts `Song`s to `ShuffleTrack`s, runs the engine. |
+| `shuffle/ShuffleSettings.kt` (new) | Preference keys and readers. |
+| `shuffle/ShuffleHistory.kt` (new) | No-repeat history, one song id per line in `files/shuffle_history.txt`. |
+| `helper/ShuffleHelper.kt` | New `makeShuffleList(context, list, current)` overload that routes through the builder. The original function is unchanged. |
+| `service/MusicService.kt` | `setShuffleMode` and `openQueue` use the new overload. `reshuffleForLoopIfNeeded()` runs at the start of `prepareNextImpl()`. The `META_CHANGED` handler reports the previous song to the no-repeat history. |
+| `service/MediaSessionCallback.kt` | "Shuffle all" (Android Auto and other controllers) uses the new overload. |
+| `fragments/settings/MainSettingsFragment.kt`, `SettingsFragment.kt`, `res/layout/fragment_main_settings.xml`, `res/navigation/settings_graph.xml` | The Shuffle entry, its title and navigation. |
+| `res/values/strings.xml`, `res/values/arrays.xml` | English strings and list values. |
+| `app/build.gradle.kts` | `testImplementation("junit:junit:4.13.2")` and the versionCode. |
+
+### Behavior
+
+The whole order is computed when shuffle starts, so the queue screen shows the real upcoming
+songs. The current song always stays first. When every option is at its default (True random, No
+repeats off, minimum length 0), the original `ShuffleHelper` code runs, so the default behavior is
+unchanged. If building the order fails for any reason, it also falls back to the original code.
+
+- **True random**: every order is equally likely.
+- **Block length (all block modes)**: each block mode has two limits, each with its own switch:
+  number of songs (min/max) and time (min/max minutes). For each block a random target is picked
+  between min and max for every limit that's on. Songs are added while the block is below all of
+  its targets, so the block ends at whichever is reached first. Time counts the durations of the
+  songs in the block, and the song that crosses the time target plays in full. A group smaller
+  than the targets plays all of its songs. If both switches are off, the song limit is used.
+  Defaults (since 10716): 2 to 4 songs and 7 to 15 minutes for every block mode. Folder/album and
+  artist blocks have the song limit on and the time limit off; genre blocks the other way round.
+  Saved values are never overwritten. Existing settings
+  keep their keys (`shuffle_group_min/max`, `shuffle_artist_min/max`,
+  `shuffle_genre_min/max_minutes`), so earlier values carry over unchanged. New keys:
+  `shuffle_{group,artist,genre}_use_songs`, `shuffle_{group,artist,genre}_use_time`,
+  `shuffle_{group,artist}_min/max_minutes` and `shuffle_genre_min/max` (songs). All block modes
+  share `ShuffleEngine.countBlocks` with a `BlockLimits` value.
+- **Entry points**: every queue shuffle goes through `ShuffleHelper.makeShuffleList(context, …)` →
+  `ShuffleQueueBuilder`. The Albums and Artists tab shuffle buttons are upstream's own feature
+  (random album/artist order, whole albums, shuffle off). When a mode other than True random is
+  chosen, they now open all songs with `openAndShuffleQueue` instead, so the mode applies.
+  `MusicService` listens for `shuffle_*` preference changes and, after 0.8 s, reshuffles the
+  part of the queue after the current song if shuffle is on.
+- **Settings layout**: each limit is a switch followed by its minimum and maximum slider; the
+  sliders depend on the switch. `ShuffleSettingsLayoutTest` checks this order in
+  `pref_shuffle.xml`. `FabShufflePathTest` (Robolectric) runs `ShuffleHelper.makeShuffleList`
+  with prefs stored as the settings screen stores them, twice in a row as the Songs tab button
+  does (`openQueue` with shuffle on, then `setShuffleMode`).
+- **Opening a queue**: `MusicService.openQueue(queue, start, startPlaying, shuffleMode)` applies
+  the shuffle mode in the same step (`service/QueueOpener.kt`, unit tested). Before, `MusicPlayerRemote.doOpenQueue`
+  called `openQueue` (which shuffled if shuffle was on) and then `setShuffleMode`, which shuffled
+  again around a stale position while playback started on another thread. Now the queue is
+  shuffled once, the start song is at position 0, and `position` is set before playback starts.
+  The player's shuffle toggle still uses `setShuffleMode` (on: reshuffle around the current song;
+  off: back to the original order).
+- **Slider haptics**: one shared helper, `appthemehelper/.../util/SliderHaptics.kt`, adapted
+  from HeliBoard-custom's `performSliderStepHaptic` (Apache-2.0, see `THIRD_PARTY_NOTICES.md`).
+  Per step: `performHapticFeedback` (`SEGMENT_FREQUENT_TICK` on API 34+, `TEXT_HANDLE_MOVE` on
+  8.1+, else `CLOCK_TICK`) with `FLAG_IGNORE_GLOBAL_SETTING`, plus a 5 ms vibration at amplitude
+  65, at most once per 12 ms. Like HeliBoard, it ignores the system touch-vibration switch and
+  uses the existing VIBRATE permission. Hooked into `ATESeekBarPreference` (all settings
+  sliders, via the value label), the player seek bars (`AbsPlayerControlsFragment`, Circle,
+  Gradient, Classic, Drive mode; one tick per 5 s), the player volume slider (`VolumeFragment`),
+  Circle's volume ring, the sleep timer, playback speed/pitch and the audio fade duration
+  dialog.
+- **Folder or album blocks**: the grouping is the album (`albumId`) or the song's parent folder
+  (taken from the file path). A random song is picked, then songs from its group follow until the
+  block limits are reached. "In order from the first pick" continues by track number (album) or
+  file path (folder) from the pick and wraps to the group's earlier songs. "Random within block"
+  takes random songs from the group. The next pick prefers a different group.
+- **Genre blocks**: a random song is picked and random songs of the same genre follow until the
+  block limits are reached. The next pick prefers a different genre. Genres come from
+  MediaStore (the `GENRE` column on Android 11 and newer, the genre tables on older versions).
+  Untagged songs form an "Unknown" group, or can be left out.
+- **Artist blocks**: like album blocks, grouped by the song's first artist after this fork's `;`
+  split. "In order" goes by album, then track number.
+- **Spread out artists**: random, but no artist plays again within N songs (1 to 20, default 5).
+  All of a song's `;`-split artists count. If no song fits, the song whose artist was last heard
+  longest ago is used.
+- **Weighted**: Efraimidis-Spirakis weighted random order. Each song's weight is
+  `1 + strength × score`, with strength 0 to 10 (default 5) and score 0 to 1. Favorites score 1
+  for songs in the Favorites playlist. Most played uses the rank in the existing play-count store
+  (`SongPlayCountStore`), and least played is the reverse, with never-counted songs scoring 1.
+- **Spotify-style**: after Lukáš Poláček, "How to shuffle songs?", Spotify Engineering, 28
+  February 2014 (<https://engineering.atspotify.com/2014/02/how-to-shuffle-songs/>, archived at
+  <https://web.archive.org/web/20220215030739/https://engineering.atspotify.com/2014/02/how-to-shuffle-songs/>).
+  Each artist's songs are shuffled, then spread evenly along the queue with a random starting
+  offset per artist and up to ±20 % random variation in spacing, and everything is sorted by
+  position. There's no Apple mode because Apple hasn't published its algorithm.
+
+Options for all modes:
+
+- **No repeats**: songs already in the history are placed after all unplayed songs, and each
+  part is ordered by the active mode. When the share of the queue's songs that have been played
+  reaches the set percentage (50 to 100, default 100), those songs are removed from the history.
+  A song is added when it stops being the current song after more than half of it has played,
+  the same rule as the play count. With "Skipped songs count as played" on, it's added either way.
+- **Reshuffle when the queue repeats**: with shuffle and Repeat all on, when the last song starts,
+  the other songs are reshuffled and the current song moves to the end, so the next loop has a new
+  order.
+- **Skip songs shorter than**: songs shorter than N seconds (0 to 120, 0 = off) are left out of
+  the shuffled queue. They come back when shuffle is turned off, because the unshuffled queue is
+  kept separately as before.
+
+### Limits
+
+- Settings apply the next time shuffle is turned on or a shuffled queue is started. They don't
+  reorder a queue that's already shuffled.
+- Genre blocks depend on genre tags in MediaStore. Songs with several genres use the one
+  MediaStore reports.
+- "Shuffle all" from the Songs list still starts on a random song chosen before the mode runs.
+  With No repeats on, that first song can be one that was already played.
+- The Artists tab shuffle button is unchanged. It orders artists randomly and plays each artist's
+  songs together with shuffle off.
+- Library data for Weighted and Genre blocks is read when shuffle starts, which can take a moment
+  on large libraries.

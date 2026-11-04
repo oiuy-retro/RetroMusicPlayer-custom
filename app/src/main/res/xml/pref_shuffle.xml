@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreferenceCategory
+        android:layout="@layout/preference_category_title"
+        android:title="@string/pref_header_shuffle">
+
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEListPreference
+            android:defaultValue="true_random"
+            android:entries="@array/pref_shuffle_mode_titles"
+            android:entryValues="@array/pref_shuffle_mode_values"
+            android:key="shuffle_mode_type"
+            android:layout="@layout/list_item_view"
+            android:negativeButtonText="@null"
+            android:positiveButtonText="@null"
+            android:title="@string/pref_title_shuffle_mode"
+            app:icon="@drawable/ic_shuffle" />
+
+    </code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreferenceCategory>
+    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreferenceCategory
+        android:key="shuffle_cat_group_blocks"
+        android:layout="@layout/preference_category_title"
+        android:title="@string/shuffle_mode_group_blocks">
+
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEListPreference
+            android:defaultValue="album"
+            android:entries="@array/pref_shuffle_group_by_titles"
+            android:entryValues="@array/pref_shuffle_group_by_values"
+            android:key="shuffle_group_by"
+            android:layout="@layout/list_item_view"
+            android:negativeButtonText="@null"
+            android:positiveButtonText="@null"
+            android:title="@string/pref_title_shuffle_group_by"
+            app:useSimpleSummaryProvider="true" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESwitchPreference
+            android:defaultValue="true"
+            android:key="shuffle_group_use_songs"
+            android:layout="@layout/list_item_view_switch"
+            android:summary="@string/pref_summary_shuffle_use_songs"
+            android:title="@string/pref_title_shuffle_use_songs" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+            android:defaultValue="2"
+            android:dependency="shuffle_group_use_songs"
+            android:key="shuffle_group_min"
+            android:layout="@layout/list_item_view_seekbar"
+            android:max="50"
+            app:min="1"
+            app:ateKey_pref_unit=""
+            android:title="@string/pref_title_shuffle_min_songs"
+            android:summary="@string/pref_summary_shuffle_block_songs"
+            app:showSeekBarValue="true" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+            android:dependency="shuffle_group_use_songs"
+            android:defaultValue="4"
+            android:key="shuffle_group_max"
+            android:layout="@layout/list_item_view_seekbar"
+            android:max="50"
+            app:min="1"
+            app:ateKey_pref_unit=""
+            android:title="@string/pref_title_shuffle_max_songs"
+            app:showSeekBarValue="true" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESwitchPreference
+            android:defaultValue="false"
+            android:key="shuffle_group_use_time"
+            android:layout="@layout/list_item_view_switch"
+            android:summary="@string/pref_summary_shuffle_use_time"
+            android:title="@string/pref_title_shuffle_use_time" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+            android:defaultValue="7"
+            android:dependency="shuffle_group_use_time"
+            android:key="shuffle_group_min_minutes"
+            android:layout="@layout/list_item_view_seekbar"
+            android:max="240"
+            app:min="1"
+            app:ateKey_pref_unit=" min"
+            android:title="@string/pref_title_shuffle_min_minutes"
+            android:summary="@string/pref_summary_shuffle_genre_minutes"
+            app:showSeekBarValue="true" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+            android:defaultValue="15"
+            android:dependency="shuffle_group_use_time"
+            android:key="shuffle_group_max_minutes"
+            android:layout="@layout/list_item_view_seekbar"
+            android:max="240"
+            app:min="1"
+            app:ateKey_pref_unit=" min"
+            android:title="@string/pref_title_shuffle_max_minutes"
+            app:showSeekBarValue="true" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEListPreference
+            android:defaultValue="in_order"
+            android:entries="@array/pref_shuffle_order_titles"
+            android:entryValues="@array/pref_shuffle_order_values"
+            android:key="shuffle_group_order"
+            android:layout="@layout/list_item_view"
+            android:negativeButtonText="@null"
+            android:positiveButtonText="@null"
+            android:title="@string/pref_title_shuffle_block_order"
+            app:useSimpleSummaryProvider="true" />
+
+    </code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreferenceCategory>
+    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreferenceCategory
+        android:key="shuffle_cat_genre_blocks"
+        android:layout="@layout/preference_category_title"
+        android:title="@string/shuffle_mode_genre_blocks">
+
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESwitchPreference
+            android:defaultValue="false"
+            android:key="shuffle_genre_use_songs"
+            android:layout="@layout/list_item_view_switch"
+            android:summary="@string/pref_summary_shuffle_use_songs"
+            android:title="@string/pref_title_shuffle_use_songs" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+            android:defaultValue="2"
+            android:dependency="shuffle_genre_use_songs"
+            android:key="shuffle_genre_min"
+            android:layout="@layout/list_item_view_seekbar"
+            android:max="50"
+            app:min="1"
+            app:ateKey_pref_unit=""
+            android:title="@string/pref_title_shuffle_min_songs"
+            android:summary="@string/pref_summary_shuffle_block_songs"
+            app:showSeekBarValue="true" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+            android:defaultValue="4"
+            android:dependency="shuffle_genre_use_songs"
+            android:key="shuffle_genre_max"
+            android:layout="@layout/list_item_view_seekbar"
+            android:max="50"
+            app:min="1"
+            app:ateKey_pref_unit=""
+            android:title="@string/pref_title_shuffle_max_songs"
+            app:showSeekBarValue="true" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESwitchPreference
+            android:defaultValue="true"
+            android:key="shuffle_genre_use_time"
+            android:layout="@layout/list_item_view_switch"
+            android:summary="@string/pref_summary_shuffle_use_time"
+            android:title="@string/pref_title_shuffle_use_time" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+            android:defaultValue="7"
+            android:dependency="shuffle_genre_use_time"
+            android:key="shuffle_genre_min_minutes"
+            android:layout="@layout/list_item_view_seekbar"
+            android:max="240"
+            app:min="1"
+            app:ateKey_pref_unit=" min"
+            android:title="@string/pref_title_shuffle_min_minutes"
+            android:summary="@string/pref_summary_shuffle_genre_minutes"
+            app:showSeekBarValue="true" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+            android:defaultValue="15"
+            android:dependency="shuffle_genre_use_time"
+            android:key="shuffle_genre_max_minutes"
+            android:layout="@layout/list_item_view_seekbar"
+            android:max="240"
+            app:min="1"
+            app:ateKey_pref_unit=" min"
+            android:title="@string/pref_title_shuffle_genre_max"
+            app:showSeekBarValue="true" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESwitchPreference
+            android:defaultValue="false"
+            android:key="shuffle_genre_exclude_unknown"
+            android:layout="@layout/list_item_view_switch"
+            android:summary="@string/pref_summary_shuffle_genre_exclude_unknown"
+            android:title="@string/pref_title_shuffle_genre_exclude_unknown" />
+
+    </code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreferenceCategory>
+    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreferenceCategory
+        android:key="shuffle_cat_artist_blocks"
+        android:layout="@layout/preference_category_title"
+        android:title="@string/shuffle_mode_artist_blocks">
+
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESwitchPreference
+            android:defaultValue="true"
+            android:key="shuffle_artist_use_songs"
+            android:layout="@layout/list_item_view_switch"
+            android:summary="@string/pref_summary_shuffle_use_songs"
+            android:title="@string/pref_title_shuffle_use_songs" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+            android:defaultValue="2"
+            android:dependency="shuffle_artist_use_songs"
+            android:key="shuffle_artist_min"
+            android:layout="@layout/list_item_view_seekbar"
+            android:max="50"
+            app:min="1"
+            app:ateKey_pref_unit=""
+            android:title="@string/pref_title_shuffle_min_songs"
+            android:summary="@string/pref_summary_shuffle_block_songs"
+            app:showSeekBarValue="true" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+            android:dependency="shuffle_artist_use_songs"
+            android:defaultValue="4"
+            android:key="shuffle_artist_max"
+            android:layout="@layout/list_item_view_seekbar"
+            android:max="50"
+            app:min="1"
+            app:ateKey_pref_unit=""
+            android:title="@string/pref_title_shuffle_max_songs"
+            app:showSeekBarValue="true" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESwitchPreference
+            android:defaultValue="false"
+            android:key="shuffle_artist_use_time"
+            android:layout="@layout/list_item_view_switch"
+            android:summary="@string/pref_summary_shuffle_use_time"
+            android:title="@string/pref_title_shuffle_use_time" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+            android:defaultValue="7"
+            android:dependency="shuffle_artist_use_time"
+            android:key="shuffle_artist_min_minutes"
+            android:layout="@layout/list_item_view_seekbar"
+            android:max="240"
+            app:min="1"
+            app:ateKey_pref_unit=" min"
+            android:title="@string/pref_title_shuffle_min_minutes"
+            android:summary="@string/pref_summary_shuffle_genre_minutes"
+            app:showSeekBarValue="true" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+            android:defaultValue="15"
+            android:dependency="shuffle_artist_use_time"
+            android:key="shuffle_artist_max_minutes"
+            android:layout="@layout/list_item_view_seekbar"
+            android:max="240"
+            app:min="1"
+            app:ateKey_pref_unit=" min"
+            android:title="@string/pref_title_shuffle_max_minutes"
+            app:showSeekBarValue="true" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEListPreference
+            android:defaultValue="random"
+            android:entries="@array/pref_shuffle_order_titles"
+            android:entryValues="@array/pref_shuffle_order_values"
+            android:key="shuffle_artist_order"
+            android:layout="@layout/list_item_view"
+            android:negativeButtonText="@null"
+            android:positiveButtonText="@null"
+            android:title="@string/pref_title_shuffle_block_order"
+            app:useSimpleSummaryProvider="true" />
+
+    </code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreferenceCategory>
+    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreferenceCategory
+        android:key="shuffle_cat_spread_artists"
+        android:layout="@layout/preference_category_title"
+        android:title="@string/shuffle_mode_spread_artists">
+
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+            android:defaultValue="5"
+            android:key="shuffle_artist_gap"
+            android:layout="@layout/list_item_view_seekbar"
+            android:max="20"
+            app:min="1"
+            app:ateKey_pref_unit=""
+            android:title="@string/pref_title_shuffle_artist_gap"
+            android:summary="@string/pref_summary_shuffle_artist_gap"
+            app:showSeekBarValue="true" />
+
+    </code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreferenceCategory>
+    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreferenceCategory
+        android:key="shuffle_cat_weighted"
+        android:layout="@layout/preference_category_title"
+        android:title="@string/shuffle_mode_weighted">
+
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEListPreference
+            android:defaultValue="favorites"
+            android:entries="@array/pref_shuffle_weight_titles"
+            android:entryValues="@array/pref_shuffle_weight_values"
+            android:key="shuffle_weight_by"
+            android:layout="@layout/list_item_view"
+            android:negativeButtonText="@null"
+            android:positiveButtonText="@null"
+            android:title="@string/pref_title_shuffle_weight_by"
+            app:useSimpleSummaryProvider="true" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+            android:defaultValue="5"
+            android:key="shuffle_weight_strength"
+            android:layout="@layout/list_item_view_seekbar"
+            android:max="10"
+            app:min="0"
+            app:ateKey_pref_unit=""
+            android:title="@string/pref_title_shuffle_weight_strength"
+            android:summary="@string/pref_summary_shuffle_weight_strength"
+            app:showSeekBarValue="true" />
+
+    </code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreferenceCategory>
+    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreferenceCategory
+        android:layout="@layout/preference_category_title"
+        android:title="@string/pref_header_shuffle_no_repeats">
+
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESwitchPreference
+            android:defaultValue="false"
+            android:key="shuffle_no_repeats"
+            android:layout="@layout/list_item_view_switch"
+            android:summary="@string/pref_summary_shuffle_no_repeats"
+            android:title="@string/pref_title_shuffle_no_repeats" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+            android:defaultValue="100"
+            android:key="shuffle_no_repeats_percent"
+            android:layout="@layout/list_item_view_seekbar"
+            android:max="100"
+            app:min="50"
+            app:ateKey_pref_unit="%"
+            android:title="@string/pref_title_shuffle_no_repeats_percent"
+            android:dependency="shuffle_no_repeats"
+            app:seekBarIncrement="5"
+            app:showSeekBarValue="true" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreference
+            android:key="shuffle_reset_history"
+            android:layout="@layout/list_item_view"
+            android:summary="@string/pref_summary_shuffle_reset_history"
+            android:title="@string/pref_title_shuffle_reset_history" />
+
+    </code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreferenceCategory>
+    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreferenceCategory
+        android:layout="@layout/preference_category_title"
+        android:title="@string/pref_header_shuffle_general">
+
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESwitchPreference
+            android:defaultValue="false"
+            android:key="shuffle_reshuffle_on_loop"
+            android:layout="@layout/list_item_view_switch"
+            android:summary="@string/pref_summary_shuffle_reshuffle_on_loop"
+            android:title="@string/pref_title_shuffle_reshuffle_on_loop" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+            android:defaultValue="0"
+            android:key="shuffle_min_length_seconds"
+            android:layout="@layout/list_item_view_seekbar"
+            android:max="120"
+            app:min="0"
+            app:ateKey_pref_unit=" s"
+            android:title="@string/pref_title_shuffle_min_length"
+            android:summary="@string/pref_summary_shuffle_min_length"
+            app:showSeekBarValue="true" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESwitchPreference
+            android:defaultValue="false"
+            android:key="shuffle_skip_counts_as_played"
+            android:layout="@layout/list_item_view_switch"
+            android:summary="@string/pref_summary_shuffle_skip_counts"
+            android:title="@string/pref_title_shuffle_skip_counts" />
+
+    </code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreferenceCategory>
+
+    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreference
+        android:layout="@layout/list_item_view_no_title"
+        android:selectable="false"
+        android:summary="@string/shuffle_settings_apply_note" />
+
+</androidx.preference.PreferenceScreen>

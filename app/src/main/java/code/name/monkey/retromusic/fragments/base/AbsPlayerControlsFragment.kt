@@ -104,6 +104,7 @@ abstract class AbsPlayerControlsFragment(@LayoutRes layout: Int) : AbsMusicServi
     }
 
     private fun setUpProgressSlider() {
+        progressSlider?.let { code.name.monkey.appthemehelper.util.SliderHaptics.attach(it, code.name.monkey.appthemehelper.util.SliderHaptics.SEEK_STEP_MS) }
         progressSlider?.addOnChangeListener(Slider.OnChangeListener { _, value, fromUser ->
             onProgressChange(value.toInt(), fromUser)
         })
@@ -119,6 +120,7 @@ abstract class AbsPlayerControlsFragment(@LayoutRes layout: Int) : AbsMusicServi
 
         seekBar?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                seekBar?.let { code.name.monkey.appthemehelper.util.SliderHaptics.onValue(it, progress.toFloat(), fromUser, code.name.monkey.appthemehelper.util.SliderHaptics.SEEK_STEP_MS) }
                 onProgressChange(progress, fromUser)
             }
 

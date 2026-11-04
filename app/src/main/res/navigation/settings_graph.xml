@@ -35,6 +35,14 @@
             app:popExitAnim="@anim/retro_fragment_close_exit" />
 
         <action
+            android:id="@+id/action_mainSettingsFragment_to_shuffleSettings"
+            app:destination="@id/shuffleSettings"
+            app:enterAnim="@anim/retro_fragment_open_enter"
+            app:exitAnim="@anim/retro_fragment_open_exit"
+            app:popEnterAnim="@anim/retro_fragment_close_enter"
+            app:popExitAnim="@anim/retro_fragment_close_exit" />
+
+        <action
             android:id="@+id/action_mainSettingsFragment_to_audioSettings"
             app:destination="@id/audioSettings"
             app:enterAnim="@anim/retro_fragment_open_enter"
@@ -76,6 +84,11 @@
             app:popEnterAnim="@anim/retro_fragment_close_enter"
             app:popExitAnim="@anim/retro_fragment_close_exit" />
     </fragment>
+
+    <fragment
+        android:id="@+id/shuffleSettings"
+        android:name="code.name.monkey.retromusic.fragments.settings.ShuffleSettingsFragment"
+        android:label="Shuffle" />
 
     <fragment
         android:id="@+id/audioSettings"
