@@ -55,7 +55,14 @@ data class BlockLimits(
     val usePercent: Boolean = false,
     val minPercent: Int = 25,
     val maxPercent: Int = 50,
-)
+) {
+    /** Same limits with every min/max pair in order (swapped if saved inverted). */
+    fun normalized(): BlockLimits = copy(
+        minSongs = min(minSongs, maxSongs), maxSongs = max(minSongs, maxSongs),
+        minMs = min(minMs, maxMs), maxMs = max(minMs, maxMs),
+        minPercent = min(minPercent, maxPercent), maxPercent = max(minPercent, maxPercent),
+    )
+}
 
 data class ShuffleConfig(
     val mode: ShuffleMode = ShuffleMode.TRUE_RANDOM,

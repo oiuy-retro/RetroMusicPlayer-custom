@@ -11,6 +11,12 @@ shared as APK files. For changes in the app itself, see the
 
 ## [Unreleased]
 
+### Fixed (branch `feature/shuffle-percent-limit`, versionCode 10718, 7.0.3-custom.7-beta.2)
+- On the Shuffle settings page a Minimum slider could be set above its Maximum. Each min/max pair
+  (songs, minutes and percent) is now linked while dragging: moving the minimum above the maximum
+  raises the maximum to match, and moving the maximum below the minimum lowers the minimum.
+  Inverted values saved by earlier builds are put back in order when read.
+
 ### Added (branch `feature/shuffle-percent-limit`, versionCode 10717)
 - Folder or album blocks have a third limit, **Limit by percent of album/folder** (off by default,
   25 to 50 %). Each block gets a random percent in that range of its album's or folder's size,

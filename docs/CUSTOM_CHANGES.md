@@ -231,6 +231,11 @@ unchanged. If building the order fails for any reason, it also falls back to the
   block a random percent in the range is turned into a song count from the group's full size
   (`ShuffleEngine.percentToSongs`, rounded up, at least 1) and combined with the song target by
   taking the smaller. If every limit is off, the song limit is used.
+- **Linked min/max sliders**: `ShuffleSettingsFragment.linkMinMax` links every min/max pair (songs,
+  minutes, percent) with `updatesContinuously` on. Moving a minimum above its maximum sets the
+  maximum to the same value; moving a maximum below its minimum sets the minimum to the same value.
+  An inverted pair found when the page opens is repaired the same way. `BlockLimits.normalized()`,
+  applied in `ShuffleSettings.config`, swaps any inverted pair read from saved preferences.
 - **Slider haptics**: one shared helper, `appthemehelper/.../util/SliderHaptics.kt`, adapted
   from HeliBoard-custom's `performSliderStepHaptic` (Apache-2.0, see `THIRD_PARTY_NOTICES.md`).
   Per step: `performHapticFeedback` (`SEGMENT_FREQUENT_TICK` on API 34+, `TEXT_HANDLE_MOVE` on

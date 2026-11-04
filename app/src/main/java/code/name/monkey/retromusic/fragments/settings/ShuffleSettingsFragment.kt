@@ -71,8 +71,21 @@ class ShuffleSettingsFragment : AbsSettingsFragment() {
     private fun linkMinMax(minKey: String, maxKey: String) {
         val min: SeekBarPreference = findPreference(minKey) ?: return
         val max: SeekBarPreference = findPreference(maxKey) ?: return
-        min.setOnPreferenceChangeListener { _, v -> if ((v as Int) > max.value) max.value = v; true }
-        max.setOnPreferenceChangeListener { _, v -> if ((v as Int) < min.value) min.value = v; true }
+        // Apply the push while dragging, not only on release, so both sliders move together.
+        min.updatesContinuously = true
+        max.updatesContinuously = true
+        // Repair pairs saved inverted by older versions.
+        if (min.value > max.value) max.value = min.value
+        min.setOnPreferenceChangeListener { _, v ->
+            val n = v as Int
+            if (n > max.value) max.value = n
+            true
+        }
+        max.setOnPreferenceChangeListener { _, v ->
+            val n = v as Int
+            if (n < min.value) min.value = n
+            true
+        }
     }
 }
 
