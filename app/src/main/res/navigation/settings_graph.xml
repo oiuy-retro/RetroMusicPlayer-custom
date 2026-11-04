@@ -80,7 +80,20 @@
     <fragment
         android:id="@+id/audioSettings"
         android:name="code.name.monkey.retromusic.fragments.settings.AudioSettings"
-        android:label="Audio" />
+        android:label="Audio">
+        <action
+            android:id="@+id/action_audioSettings_to_equalizerFragment"
+            app:destination="@id/equalizerFragment"
+            app:enterAnim="@anim/retro_fragment_open_enter"
+            app:exitAnim="@anim/retro_fragment_open_exit"
+            app:popEnterAnim="@anim/retro_fragment_close_enter"
+            app:popExitAnim="@anim/retro_fragment_close_exit" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/equalizerFragment"
+        android:name="code.name.monkey.retromusic.fragments.settings.EqualizerFragment"
+        android:label="Equalizer" />
 
     <fragment
         android:id="@+id/imageSettingFragment"

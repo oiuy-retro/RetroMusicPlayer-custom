@@ -140,6 +140,8 @@ class PlaybackManager(val context: Context) {
     }
 
     private fun openAudioEffectSession() {
+        // With the built-in equalizer on, don't also hand the session to a system EQ app.
+        if (code.name.monkey.retromusic.equalizer.EqManager.isActive()) return
         val intent = Intent(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION)
         intent.putExtra(AudioEffect.EXTRA_AUDIO_SESSION, audioSessionId)
         intent.putExtra(AudioEffect.EXTRA_PACKAGE_NAME, context.packageName)

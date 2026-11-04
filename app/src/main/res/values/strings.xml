@@ -528,4 +528,29 @@
     <string name="try_retro_music_premium" translatable="false" />
     <string name="listing_files" translatable="false" />
 
+    <!-- Built-in equalizer (custom build, English only) -->
+    <string name="builtin_equalizer">Built-in equalizer</string>
+    <string name="builtin_equalizer_summary">Retro\'s own equalizer, bass boost and loudness, with optional profiles per output device</string>
+    <string name="eq_enable">Use built-in equalizer</string>
+    <string name="eq_not_supported">This device does not offer an equalizer effect to apps.</string>
+    <string name="eq_per_device">Separate profile per output device</string>
+    <string name="eq_default_profile">Default profile</string>
+    <string name="eq_editing_profile">Editing: %1$s</string>
+    <string name="eq_bt_shared_note">Without the Nearby devices permission, Bluetooth devices are told apart by name only, or share one Bluetooth profile.</string>
+    <string name="eq_preset">Preset: %1$s</string>
+    <string name="eq_preset_custom_unsaved">Custom</string>
+    <string name="eq_presets">Presets</string>
+    <string name="eq_save_preset">Save as preset</string>
+    <string name="eq_reset_flat">Reset to flat</string>
+    <string name="eq_bass_boost">Bass boost: %1$d %%</string>
+    <string name="eq_virtualizer">Virtualizer: %1$d %%</string>
+    <string name="eq_loudness">Loudness gain: %1$.1f dB</string>
+    <string name="eq_manage_profiles">Device profiles</string>
+    <string name="eq_no_profiles">No device profiles yet. Turn on separate profiles and play to a device to create one.</string>
+    <string name="eq_open_system">Open system equalizer</string>
+    <string name="eq_apply">Apply</string>
+    <string name="eq_delete">Delete</string>
+    <string name="eq_rename">Rename</string>
+    <string name="eq_copy_from">Copy settings from…</string>
+    <string name="eq_delete_confirm">Delete the profile \"%1$s\"? It is recreated from the default profile the next time that device is used.</string>
 </resources>

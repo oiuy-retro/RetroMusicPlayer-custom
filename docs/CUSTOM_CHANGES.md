@@ -165,3 +165,27 @@ with that raw id shows the combined entry as upstream did.
 
 `Artist.name` now prefers `displayName`. The unknown-artist and Various Artists display mapping
 still applies.
+
+## Built-in equalizer (`feature/built-in-eq`)
+
+| File | Change |
+|---|---|
+| `service/RetroAudioSession.kt` (new) | One audio session id from `AudioManager.generateAudioSessionId()`, shared by all local players. |
+| `service/RetroExoPlayer.kt`, `service/CrossFadePlayer.kt` | Put every ExoPlayer / MediaPlayer on the shared session (crossfade players before each `setDataSource`). |
+| `service/PlaybackManager.kt` | Doesn't send the "open audio effect session" broadcast to system EQ apps while the built-in EQ is on. |
+| `service/MusicService.kt` | Starts `EqManager` in `onCreate`, stops it (releases the effects) with the player. |
+| `equalizer/EqModels.kt`, `DeviceKeys.kt`, `EqStore.kt` (new) | Data models, device keys, profile selection and storage (Gson JSON in the default shared preferences, keys `builtin_eq_*`). Unit tested in `app/src/test`. |
+| `equalizer/EqManager.kt` (new) | Creates `Equalizer`, `BassBoost`, `Virtualizer`, `LoudnessEnhancer` on the shared session, applies the active profile, listens with `AudioDeviceCallback`. |
+| `fragments/settings/EqualizerFragment.kt` (new), `AudioSettings.kt`, `SettingsFragment.kt`, `res/navigation/settings_graph.xml`, `res/xml/pref_audio.xml`, `res/values/strings.xml` | The equalizer screen and its entry in Audio settings (English strings only). |
+| `app/proguard-rules.pro` | Keeps the Gson model classes. |
+
+How it works:
+
+- Effects attach to an audio session, not a player. Because all players share one session, the
+  effects keep working across track changes, crossfades and player re-creation.
+- Active output: Bluetooth first, then wired/USB, then the speaker (`DeviceKeys.pickActive`).
+- Profile keys: `speaker`, `wired`, `bt:addr:<MAC>` (needs Nearby devices on Android 12+),
+  `bt:name:<product name>` without it, or `bt:shared` when there's no name either.
+- With per-device profiles off, everything uses the default profile. A device seen for the first
+  time gets a copy of the default profile.
+- The Nearby devices permission is asked for only when per-device profiles are turned on.

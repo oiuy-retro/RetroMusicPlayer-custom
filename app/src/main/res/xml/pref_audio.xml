@@ -27,6 +27,13 @@
         app:showSeekBarValue="true" />
 
     <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreference
+        android:key="builtin_equalizer"
+        android:layout="@layout/list_item_view"
+        android:summary="@string/builtin_equalizer_summary"
+        android:title="@string/builtin_equalizer"
+        app:icon="@drawable/ic_equalizer" />
+
+    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreference
         android:key="equalizer"
         android:layout="@layout/list_item_view_no_title"
         android:title="@string/equalizer"

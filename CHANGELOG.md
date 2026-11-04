@@ -17,6 +17,12 @@ shared as APK files. For changes in the app itself, see the
   The upstream README is now in `docs/UPSTREAM_README.md`.
 - `.gitignore` entries for signing files (`retro.properties`, `*.jks`, `*.keystore`,
   `keystore.properties`, `public.properties`).
+- A **built-in equalizer** (Settings > Audio > Built-in equalizer): an on/off switch, the band
+  sliders the phone reports, the phone's presets plus your own saved presets, bass boost,
+  virtualizer (when the phone supports it) and a loudness gain slider. Optional separate profiles
+  per output device (phone speaker, wired/USB, each Bluetooth device) that switch automatically,
+  with a screen to rename, delete and copy profiles. "Open system equalizer" is still there.
+  versionCode 10711 on the `feature/built-in-eq` branch.
 
 ## [7.0.3-custom.3] - 2026-10-20 (versionCode 10705)
 

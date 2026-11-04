@@ -45,6 +45,11 @@ class AudioSettings : AbsSettingsFragment() {
             NavigationUtil.openEqualizer(requireActivity())
             true
         }
+        findPreference<Preference>("builtin_equalizer")?.setOnPreferenceClickListener {
+            androidx.navigation.fragment.NavHostFragment.findNavController(this)
+                .navigate(R.id.action_audioSettings_to_equalizerFragment)
+            true
+        }
         val bluetoothPreference: Preference? = findPreference(BLUETOOTH_PLAYBACK)
         if (VersionUtils.hasS()) {
             bluetoothPreference?.setOnPreferenceChangeListener { _, newValue ->
