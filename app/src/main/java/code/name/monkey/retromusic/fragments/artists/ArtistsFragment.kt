@@ -59,6 +59,14 @@ class ArtistsFragment : AbsRecyclerViewCustomGridSizeFragment<ArtistAdapter, Gri
 
     override fun onShuffleClicked() {
         libraryViewModel.getArtists().value?.let {
+            val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
+            if (code.name.monkey.retromusic.shuffle.ShuffleSettings.mode(prefs) !=
+                code.name.monkey.retromusic.shuffle.ShuffleMode.TRUE_RANDOM
+            ) {
+                // A shuffle mode is chosen in Settings > Shuffle: use it for this button too.
+                MusicPlayerRemote.openAndShuffleQueue(it.flatMap { artist -> artist.songs }, true)
+                return
+            }
             MusicPlayerRemote.setShuffleMode(MusicService.SHUFFLE_MODE_NONE)
             MusicPlayerRemote.openQueue(
                 queue = it.shuffled().flatMap { artist -> artist.songs },

@@ -207,6 +207,12 @@ unchanged. If building the order fails for any reason, it also falls back to the
   `shuffle_{group,artist,genre}_use_songs`, `shuffle_{group,artist,genre}_use_time`,
   `shuffle_{group,artist}_min/max_minutes` and `shuffle_genre_min/max` (songs). All block modes
   share `ShuffleEngine.countBlocks` with a `BlockLimits` value.
+- **Entry points**: every queue shuffle goes through `ShuffleHelper.makeShuffleList(context, …)` →
+  `ShuffleQueueBuilder`. The Albums and Artists tab shuffle buttons are upstream's own feature
+  (random album/artist order, whole albums, shuffle off). When a mode other than True random is
+  chosen, they now open all songs with `openAndShuffleQueue` instead, so the mode applies.
+  `MusicService` listens for `shuffle_*` preference changes and, after 0.8 s, reshuffles the
+  part of the queue after the current song if shuffle is on.
 - **Folder or album blocks**: the grouping is the album (`albumId`) or the song's parent folder
   (taken from the file path). A random song is picked, then songs from its group follow until the
   block limits are reached. "In order from the first pick" continues by track number (album) or

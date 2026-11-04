@@ -539,6 +539,28 @@ class MusicService : MediaBrowserServiceCompat(),
         return duration
     }
 
+    private val reshuffleRunnable = Runnable { reshuffleRemaining() }
+
+    /** Shuffle settings changed: re-order the songs after the current one (debounced for sliders). */
+    private fun scheduleReshuffleRemaining() {
+        val handler = uiThreadHandler ?: return
+        handler.removeCallbacks(reshuffleRunnable)
+        handler.postDelayed(reshuffleRunnable, 800)
+    }
+
+    private fun reshuffleRemaining() {
+        if (shuffleMode != SHUFFLE_MODE_SHUFFLE) return
+        val pos = getPosition()
+        if (pos < 0 || pos >= playingQueue.size) return
+        val played = ArrayList(playingQueue.subList(0, pos))
+        val rest = ArrayList(playingQueue.subList(pos, playingQueue.size))
+        if (rest.size < 2) return
+        makeShuffleList(this, rest, 0) // the current song stays first
+        playingQueue = ArrayList(played + rest)
+        position = pos
+        notifyChange(QUEUE_CHANGED)
+    }
+
     private fun getShuffleMode(): Int {
         return shuffleMode
     }
@@ -676,6 +698,9 @@ class MusicService : MediaBrowserServiceCompat(),
     override fun onSharedPreferenceChanged(
         sharedPreferences: SharedPreferences, key: String?,
     ) {
+        if (key != null && key.startsWith("shuffle_") && key != code.name.monkey.retromusic.shuffle.ShuffleSettings.RESET_HISTORY) {
+            scheduleReshuffleRemaining()
+        }
         when (key) {
             PLAYBACK_SPEED, PLAYBACK_PITCH -> {
                 updateMediaSessionPlaybackState()
