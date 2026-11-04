@@ -213,6 +213,11 @@ unchanged. If building the order fails for any reason, it also falls back to the
   chosen, they now open all songs with `openAndShuffleQueue` instead, so the mode applies.
   `MusicService` listens for `shuffle_*` preference changes and, after 0.8 s, reshuffles the
   part of the queue after the current song if shuffle is on.
+- **Settings layout**: each limit is a switch followed by its minimum and maximum slider; the
+  sliders depend on the switch. `ShuffleSettingsLayoutTest` checks this order in
+  `pref_shuffle.xml`. `FabShufflePathTest` (Robolectric) runs `ShuffleHelper.makeShuffleList`
+  with prefs stored as the settings screen stores them, twice in a row as the Songs tab button
+  does (`openQueue` with shuffle on, then `setShuffleMode`).
 - **Folder or album blocks**: the grouping is the album (`albumId`) or the song's parent folder
   (taken from the file path). A random song is picked, then songs from its group follow until the
   block limits are reached. "In order from the first pick" continues by track number (album) or

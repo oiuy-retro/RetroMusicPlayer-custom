@@ -28,7 +28,11 @@ shared as APK files. For changes in the app itself, see the
   on, the block ends at whichever limit is reached first. The shuffle buttons on the Albums and
   Artists tabs use the chosen shuffle mode (before, they always played whole albums or artists
   in a random album/artist order). Changing a shuffle setting while shuffle is on reshuffles the
-  songs after the current one. versionCode 10713 on the `feature/shuffle-modes` branch.
+  songs after the current one. Fixed in 10714: on the Shuffle page the "Maximum songs per block"
+  slider (Folder/album and Artist blocks) sat below the time sliders and stayed active when the
+  song limit was off; Genre's maximum minutes also stayed active with the time limit off. Each
+  limit now shows as switch, minimum, maximum. versionCode 10714 on the `feature/shuffle-modes`
+  branch.
 
 ## [7.0.3-custom.3] - 2026-10-20 (versionCode 10705)
 
