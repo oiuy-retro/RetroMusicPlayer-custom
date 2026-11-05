@@ -570,6 +570,7 @@ class GradientPlayerFragment : AbsPlayerFragment(R.layout.fragment_gradient_play
 
     private fun setUpProgressSlider() {
         val progressSlider = binding.playbackControlsFragment.progressSlider
+        code.name.monkey.appthemehelper.util.SliderHaptics.attach(progressSlider, code.name.monkey.appthemehelper.util.SliderHaptics.SEEK_STEP_MS)
         progressSlider.addOnChangeListener(Slider.OnChangeListener { _, value, fromUser ->
             if (fromUser) {
                 onUpdateProgressViews(

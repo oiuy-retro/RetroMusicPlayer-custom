@@ -19,6 +19,8 @@ class PlaybackSpeedDialog : DialogFragment() {
         binding.playbackPitchSlider.accent()
         PreferenceUtil.playbackSpeed.toString().also { binding.speedValue.text = it }
         PreferenceUtil.playbackPitch.toString().also { binding.pitchValue.text = it }
+        code.name.monkey.appthemehelper.util.SliderHaptics.attach(binding.playbackSpeedSlider)
+        code.name.monkey.appthemehelper.util.SliderHaptics.attach(binding.playbackPitchSlider)
         binding.playbackSpeedSlider.addOnChangeListener(Slider.OnChangeListener { _, value, _ ->
             binding.speedValue.text = "$value"
         })

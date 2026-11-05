@@ -62,7 +62,9 @@ import code.name.monkey.retromusic.BLURRED_ALBUM_ART
 import code.name.monkey.retromusic.BuildConfig
 import code.name.monkey.retromusic.CROSS_FADE_DURATION
 import code.name.monkey.retromusic.PLAYBACK_PITCH
+import code.name.monkey.retromusic.MANAGE_AUDIO_FOCUS
 import code.name.monkey.retromusic.PLAYER_VOLUME
+import code.name.monkey.retromusic.RESUME_AFTER_FOCUS_LOSS
 import code.name.monkey.retromusic.PLAYBACK_SPEED
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.TOGGLE_HEADSET
@@ -307,6 +309,7 @@ class MusicService : MediaBrowserServiceCompat(),
     private var isForeground = false
     override fun onCreate() {
         super.onCreate()
+        ResumeLog.init(this)
         val powerManager = getSystemService<PowerManager>()
         if (powerManager != null) {
             wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, javaClass.name)
@@ -379,6 +382,7 @@ class MusicService : MediaBrowserServiceCompat(),
         if (audioDeviceCallback != null) {
             getSystemService<AudioManager>()?.unregisterAudioDeviceCallback(audioDeviceCallback!!)
         }
+        ResumeLog.d("service destroyed (resumePending=${playbackManager.isResumePending})")
         mediaSession?.isActive = false
         quit()
         releaseResources()
@@ -540,6 +544,36 @@ class MusicService : MediaBrowserServiceCompat(),
         return duration
     }
 
+    private var reshuffleJob: kotlinx.coroutines.Job? = null
+
+    /**
+     * Runs the (possibly heavy) shuffle math off the main thread. The result is applied on the
+     * main thread only if the queue and position did not change meanwhile.
+     */
+    /** Called once when the user leaves Settings > Shuffle after changing something. */
+    fun reshuffleRemaining() {
+        if (shuffleMode != SHUFFLE_MODE_SHUFFLE) return
+        val pos = getPosition()
+        val queue = playingQueue
+        if (pos < 0 || pos >= queue.size) return
+        val played = ArrayList(queue.subList(0, pos))
+        val rest = ArrayList(queue.subList(pos, queue.size))
+        if (rest.size < 2) return
+        val size = queue.size
+        val currentSong = queue[pos]
+        reshuffleJob?.cancel()
+        reshuffleJob = serviceScope.launch(Default) {
+            makeShuffleList(this@MusicService, rest, 0) // the current song stays first
+            withContext(Main) {
+                if (playingQueue !== queue || playingQueue.size != size || getPosition() != pos ||
+                    playingQueue[pos] != currentSong || shuffleMode != SHUFFLE_MODE_SHUFFLE) return@withContext
+                playingQueue = ArrayList(played + rest)
+                position = pos
+                notifyChange(QUEUE_CHANGED)
+            }
+        }
+    }
+
     private fun getShuffleMode(): Int {
         return shuffleMode
     }
@@ -551,7 +585,7 @@ class MusicService : MediaBrowserServiceCompat(),
         when (shuffleMode) {
             SHUFFLE_MODE_SHUFFLE -> {
                 this.shuffleMode = shuffleMode
-                makeShuffleList(playingQueue, getPosition())
+                makeShuffleList(this, playingQueue, getPosition())
                 position = 0
             }
 
@@ -683,6 +717,11 @@ class MusicService : MediaBrowserServiceCompat(),
                 playbackManager.setPlaybackSpeedPitch(playbackSpeed, playbackPitch)
             }
 
+            MANAGE_AUDIO_FOCUS, RESUME_AFTER_FOCUS_LOSS -> {
+                // Stop waiting to resume if the new settings no longer allow it
+                playbackManager.onFocusResumeSettingsChanged()
+            }
+
             PLAYER_VOLUME -> {
                 playbackManager.setPlayerGain(PlayerVolume.currentGain)
                 // Refresh the media controls (volume-down icon shows "off" at 0 %)
@@ -717,7 +756,10 @@ class MusicService : MediaBrowserServiceCompat(),
                         play()
                     }
 
-                    ACTION_PAUSE -> pause()
+                    ACTION_PAUSE -> {
+                        ResumeLog.d("pause intent (headset/notification/noisy)")
+                        pause()
+                    }
                     ACTION_PLAY -> play()
                     ACTION_PLAY_PLAYLIST -> playFromPlaylist(intent)
                     ACTION_REWIND -> back(true)
@@ -783,35 +825,50 @@ class MusicService : MediaBrowserServiceCompat(),
     }
 
     override fun onUnbind(intent: Intent): Boolean {
-        if (!isPlaying) {
+        // Don't stop while waiting to resume after other media: stopping would cancel the
+        // resume, and on Android 17 a stopped service can't get audio focus back.
+        if (playbackManager.isResumePending) {
+            ResumeLog.d("onUnbind: kept running, resume pending")
+        } else if (!isPlaying) {
             stopSelf()
         }
         return true
     }
 
+    /**
+     * Opens [playingQueue] and starts at [startPosition]. [shuffleMode] (default: the current
+     * mode) is applied in the same step, so a shuffled queue is built exactly once, with the
+     * start song at position 0, and the position is set before playback is started on another
+     * thread (no race with the queue the UI shows).
+     */
     fun openQueue(
         playingQueue: List<Song>?,
         startPosition: Int,
         startPlaying: Boolean,
+        shuffleMode: Int = this.shuffleMode,
     ) {
-        if (!playingQueue.isNullOrEmpty()
-            && startPosition >= 0 && startPosition < playingQueue.size
-        ) {
-            // it is important to copy the playing queue here first as we might add/remove songs later
-            originalPlayingQueue = ArrayList(playingQueue)
-            this.playingQueue = ArrayList(originalPlayingQueue)
-            var position = startPosition
-            if (shuffleMode == SHUFFLE_MODE_SHUFFLE) {
-                makeShuffleList(this.playingQueue, startPosition)
-                position = 0
+        if (playingQueue.isNullOrEmpty()) return
+        val opened = QueueOpener.open(
+            playingQueue, startPosition, shuffleMode == SHUFFLE_MODE_SHUFFLE
+        ) { list, current -> makeShuffleList(this, list, current) } ?: return
+        val modeChanged = this.shuffleMode != shuffleMode
+        if (modeChanged) {
+            this.shuffleMode = shuffleMode
+            PreferenceManager.getDefaultSharedPreferences(this).edit {
+                putInt(SAVED_SHUFFLE_MODE, shuffleMode)
             }
-            if (startPlaying) {
-                playSongAt(position)
-            } else {
-                setPosition(position)
-            }
-            notifyChange(QUEUE_CHANGED)
         }
+        // it is important to copy the playing queue here first as we might add/remove songs later
+        originalPlayingQueue = opened.original
+        this.playingQueue = opened.playing
+        this.position = opened.position
+        if (startPlaying) {
+            playSongAt(opened.position)
+        } else {
+            setPosition(opened.position)
+        }
+        if (modeChanged) handleAndSendChangeInternal(SHUFFLE_MODE_CHANGED)
+        notifyChange(QUEUE_CHANGED)
     }
 
     @Synchronized
@@ -868,8 +925,29 @@ class MusicService : MediaBrowserServiceCompat(),
         }
     }
 
+    /**
+     * Settings > Shuffle > "Reshuffle when the queue repeats": when the last song of a shuffled
+     * queue starts with Repeat all on, mix the other songs again so the next loop has a new order.
+     * The current song moves to the end so playback continues unchanged.
+     */
+    private fun reshuffleForLoopIfNeeded() {
+        if (shuffleMode != SHUFFLE_MODE_SHUFFLE || repeatMode != REPEAT_MODE_ALL) return
+        if (!isLastTrack || playingQueue.size < 3) return
+        if (!code.name.monkey.retromusic.shuffle.ShuffleSettings.reshuffleOnLoop(
+                PreferenceManager.getDefaultSharedPreferences(this)
+            )
+        ) return
+        val current = playingQueue[position]
+        val others = ArrayList(playingQueue.subList(0, position))
+        makeShuffleList(this, others, -1)
+        playingQueue = ArrayList(others + current)
+        position = playingQueue.size - 1
+        notifyChange(QUEUE_CHANGED)
+    }
+
     @Synchronized
     fun prepareNextImpl() {
+        reshuffleForLoopIfNeeded()
         try {
             val nextPosition = getNextPosition(false)
             playbackManager.setNextDataSource(getSongAt(nextPosition).uri)
@@ -1179,6 +1257,10 @@ class MusicService : MediaBrowserServiceCompat(),
                         SongPlayCountStore.getInstance(this@MusicService)
                             .bumpPlayCount(songPlayCountHelper.song.id)
                     }
+                    code.name.monkey.retromusic.shuffle.ShuffleQueueBuilder.onSongFinished(
+                        this@MusicService, songPlayCountHelper.song,
+                        songPlayCountHelper.shouldBumpPlayCount()
+                    )
                     songPlayCountHelper.notifySongChanged(currentSong)
                     storage.saveSong(currentSong)
                 }
@@ -1201,7 +1283,7 @@ class MusicService : MediaBrowserServiceCompat(),
     private fun startForegroundOrNotify() {
         if (isQuitting) return
         if (playingNotification != null && currentSong.id != -1L) {
-            if (isForeground && !isPlaying) {
+            if (isForeground && !isPlaying && !playbackManager.isResumePending) {
                 // This makes the notification dismissible
                 // We can't call stopForeground(false) on A12 though, which may result in crashes
                 // when we call startForeground after that e.g. when Alarm goes off,
@@ -1289,10 +1371,9 @@ class MusicService : MediaBrowserServiceCompat(),
             if (playlistSongs.isNotEmpty()) {
                 if (shuffleMode == SHUFFLE_MODE_SHUFFLE) {
                     val startPosition = Random().nextInt(playlistSongs.size)
-                    openQueue(playlistSongs, startPosition, true)
-                    setShuffleMode(shuffleMode)
+                    openQueue(playlistSongs, startPosition, true, SHUFFLE_MODE_SHUFFLE)
                 } else {
-                    openQueue(playlistSongs, 0, true)
+                    openQueue(playlistSongs, 0, true, shuffleMode)
                 }
             } else {
                 runOnUiThread {

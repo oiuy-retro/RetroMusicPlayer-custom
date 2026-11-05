@@ -5,6 +5,7 @@ import android.text.Editable
 import android.util.AttributeSet
 import android.widget.SeekBar
 import android.widget.TextView
+import code.name.monkey.appthemehelper.util.SliderHaptics
 import androidx.core.content.withStyledAttributes
 import androidx.core.graphics.BlendModeColorFilterCompat
 import androidx.core.graphics.BlendModeCompat
@@ -17,7 +18,7 @@ import code.name.monkey.appthemehelper.util.ATHUtil
 import code.name.monkey.appthemehelper.util.TintHelper
 import code.name.monkey.appthemehelper.util.VersionUtils
 
-class ATESeekBarPreference @JvmOverloads constructor(
+open class ATESeekBarPreference @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = -1,
@@ -51,6 +52,9 @@ class ATESeekBarPreference @JvmOverloads constructor(
             appendUnit(editableText)
             doAfterTextChanged {
                 appendUnit(it)
+                // The label follows the value while dragging: tick once per step.
+                val digits = it.toString().filter { c -> c.isDigit() || c == '-' }
+                digits.toFloatOrNull()?.let { v -> SliderHaptics.onValue(seekBar, v, seekBar.isPressed) }
             }
         }
     }

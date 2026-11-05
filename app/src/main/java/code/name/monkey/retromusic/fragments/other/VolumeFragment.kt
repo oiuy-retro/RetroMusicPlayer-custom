@@ -58,6 +58,7 @@ class VolumeFragment : Fragment(), Slider.OnChangeListener, View.OnClickListener
         binding.volumeSeekBar.stepSize = 1f
         binding.volumeSeekBar.setLabelFormatter { "${it.toInt()}%" }
         binding.volumeSeekBar.addOnChangeListener(this)
+        code.name.monkey.appthemehelper.util.SliderHaptics.attach(binding.volumeSeekBar)
         binding.volumeDown.setOnClickListener(this)
         binding.volumeUp.setOnClickListener(this)
     }

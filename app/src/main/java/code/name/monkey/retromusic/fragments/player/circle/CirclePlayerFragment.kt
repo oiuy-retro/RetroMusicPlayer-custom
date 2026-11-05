@@ -277,6 +277,7 @@ class CirclePlayerFragment : AbsPlayerFragment(R.layout.fragment_circle_player),
         progress: Float,
         fromUser: Boolean,
     ) {
+        circularSeekBar?.let { code.name.monkey.appthemehelper.util.SliderHaptics.onValue(it, progress, fromUser) }
         val audioManager = audioManager
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, progress.toInt(), 0)
     }
@@ -290,6 +291,7 @@ class CirclePlayerFragment : AbsPlayerFragment(R.layout.fragment_circle_player),
     private fun setUpProgressSlider() {
         binding.progressSlider.applyColor(accentColor())
         val progressSlider = binding.progressSlider
+        code.name.monkey.appthemehelper.util.SliderHaptics.attach(progressSlider, code.name.monkey.appthemehelper.util.SliderHaptics.SEEK_STEP_MS)
         progressSlider.addOnChangeListener(Slider.OnChangeListener { _, value, fromUser ->
             if (fromUser) {
                 onUpdateProgressViews(
