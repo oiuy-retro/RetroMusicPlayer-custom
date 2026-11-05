@@ -221,4 +221,48 @@
         <item>@string/choose_image</item>
         <item>@string/remove_image</item>
     </string-array>
+    <string-array name="pref_shuffle_mode_titles" translatable="false">
+        <item>@string/shuffle_mode_true_random</item>
+        <item>@string/shuffle_mode_group_blocks</item>
+        <item>@string/shuffle_mode_genre_blocks</item>
+        <item>@string/shuffle_mode_artist_blocks</item>
+        <item>@string/shuffle_mode_spread_artists</item>
+        <item>@string/shuffle_mode_weighted</item>
+        <item>@string/shuffle_mode_spotify</item>
+    </string-array>
+    <string-array name="pref_shuffle_mode_values" translatable="false">
+        <item>true_random</item>
+        <item>group_blocks</item>
+        <item>genre_blocks</item>
+        <item>artist_blocks</item>
+        <item>spread_artists</item>
+        <item>weighted</item>
+        <item>spotify</item>
+    </string-array>
+    <string-array name="pref_shuffle_group_by_titles" translatable="false">
+        <item>@string/shuffle_group_album</item>
+        <item>@string/shuffle_group_folder</item>
+    </string-array>
+    <string-array name="pref_shuffle_group_by_values" translatable="false">
+        <item>album</item>
+        <item>folder</item>
+    </string-array>
+    <string-array name="pref_shuffle_order_titles" translatable="false">
+        <item>@string/shuffle_order_in_order</item>
+        <item>@string/shuffle_order_random</item>
+    </string-array>
+    <string-array name="pref_shuffle_order_values" translatable="false">
+        <item>in_order</item>
+        <item>random</item>
+    </string-array>
+    <string-array name="pref_shuffle_weight_titles" translatable="false">
+        <item>@string/shuffle_weight_favorites</item>
+        <item>@string/shuffle_weight_most_played</item>
+        <item>@string/shuffle_weight_least_played</item>
+    </string-array>
+    <string-array name="pref_shuffle_weight_values" translatable="false">
+        <item>favorites</item>
+        <item>most_played</item>
+        <item>least_played</item>
+    </string-array>
 </resources>

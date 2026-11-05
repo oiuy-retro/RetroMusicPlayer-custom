@@ -42,6 +42,7 @@ class DurationPreferenceDialog : DialogFragment() {
             addAccentColor()
             value = PreferenceUtil.audioFadeDuration.toFloat()
             updateText(value.toInt(), binding.duration)
+            code.name.monkey.appthemehelper.util.SliderHaptics.attach(this)
             addOnChangeListener(Slider.OnChangeListener { _, value, fromUser ->
                 if (fromUser) {
                     updateText(value.toInt(), binding.duration)

@@ -112,6 +112,7 @@ class DriveModeActivity : AbsMusicServiceActivity(), Callback {
     }
 
     private fun setUpProgressSlider() {
+        code.name.monkey.appthemehelper.util.SliderHaptics.attach(binding.progressSlider, code.name.monkey.appthemehelper.util.SliderHaptics.SEEK_STEP_MS)
         binding.progressSlider.addOnChangeListener { _: Slider, progress: Float, fromUser: Boolean ->
             if (fromUser) {
                 MusicPlayerRemote.seekTo(progress.toInt())

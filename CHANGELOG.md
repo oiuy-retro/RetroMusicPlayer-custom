@@ -11,6 +11,34 @@ shared as APK files. For changes in the app itself, see the
 
 ## [Unreleased]
 
+### Changed (branch `feature/resume-after-other-media`, versionCode 10721, 7.0.3-custom.4-beta.5)
+- Merged current main into this branch so Resume after other media sits on top of the shuffle
+  work, slider vibration and typed number boxes.
+
+### Added (branch `feature/shuffle-percent-limit`, versionCode 10720, 7.0.3-custom.7-beta.4)
+- Shuffle settings: the number next to each slider is now a box you can type into. Press Done or
+  leave the box to apply it. It's kept inside the slider's range, still keeps min/max pairs in
+  order, and empty or invalid input goes back to the old value.
+
+### Fixed (branch `feature/shuffle-percent-limit`, versionCode 10719, 7.0.3-custom.7-beta.3)
+- The app could freeze while changing Folder/album block limits (time and percent). Block shuffle
+  was slow on big libraries with small blocks and ran on the main thread after every setting change.
+  Block shuffle is now fast on any library size and runs in the background.
+- Changing shuffle settings no longer reshuffles the queue on every slider move. The queue is
+  reshuffled once, when you leave the Shuffle settings page, and only if something changed.
+
+### Fixed (branch `feature/shuffle-percent-limit`, versionCode 10718, 7.0.3-custom.7-beta.2)
+- On the Shuffle settings page a Minimum slider could be set above its Maximum. Each min/max pair
+  (songs, minutes and percent) is now linked while dragging: moving the minimum above the maximum
+  raises the maximum to match, and moving the maximum below the minimum lowers the minimum.
+  Inverted values saved by earlier builds are put back in order when read.
+
+### Added (branch `feature/shuffle-percent-limit`, versionCode 10717)
+- Folder or album blocks have a third limit, **Limit by percent of album/folder** (off by default,
+  25 to 50 %). Each block gets a random percent in that range of its album's or folder's size,
+  rounded up to at least 1 song. With other limits on, the block ends at whichever is reached
+  first.
+
 ### Added
 - "Resume after other media" setting in Audio, under "Always play" (off by default). When it's on
   and Always play is off, Retro pauses when another app starts playing media and resumes about a
@@ -35,6 +63,28 @@ shared as APK files. For changes in the app itself, see the
   The upstream README is now in `docs/UPSTREAM_README.md`.
 - `.gitignore` entries for signing files (`retro.properties`, `*.jks`, `*.keystore`,
   `keystore.properties`, `public.properties`).
+- A **Shuffle** settings page (Settings > Shuffle) with a choice of shuffle modes: True random
+  (the original shuffle and the default), Folder or album blocks, Genre blocks, Artist blocks,
+  Spread out artists, Weighted (favorites, most played or least played) and Spotify-style.
+  Each mode has its own options. A separate No repeats switch works with any mode and keeps its
+  history between sessions, with a Reset shuffle history button. General options: reshuffle when
+  the queue repeats with Repeat all, leave out songs shorter than a set length, and whether
+  skipped songs count as played. Every block mode (folder or album, genre, artist) can end a
+  block by number of songs, by time, or both, each with its own switch and min/max. With both
+  on, the block ends at whichever limit is reached first. The shuffle buttons on the Albums and
+  Artists tabs use the chosen shuffle mode (before, they always played whole albums or artists
+  in a random album/artist order). Changing a shuffle setting while shuffle is on reshuffles the
+  songs after the current one. Fixed in 10714: on the Shuffle page the "Maximum songs per block"
+  slider (Folder/album and Artist blocks) sat below the time sliders and stayed active when the
+  song limit was off; Genre's maximum minutes also stayed active with the time limit off. Each
+  limit now shows as switch, minimum, maximum. Fixed in 10715: starting a shuffled list (Songs
+  tab button, Albums/Artists tab buttons, shuffle all, album/artist/playlist pages, shortcuts,
+  Android Auto) shuffled the queue twice and could leave the playing song out of step with Up
+  Next. The queue is now shuffled once, with the starting song first. In 10716: every slider
+  in the app gives a short tick per step while dragging, the same as HeliBoard's settings
+  sliders (settings sliders, player seek bars, player volume, sleep timer, playback speed and
+  pitch, audio fade; the seek bars tick every 5 seconds). The block defaults are 2 to 4 songs and 7 to 15 minutes for every block mode (values you
+  already changed are kept). versionCode 10716.
 
 ## [7.0.3-custom.3] - 2026-10-20 (versionCode 10705)
 

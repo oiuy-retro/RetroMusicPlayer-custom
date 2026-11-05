@@ -236,8 +236,8 @@ object MusicPlayerRemote : KoinComponent {
                 startPlaying
             ) && musicService != null
         ) {
-            musicService?.openQueue(queue, startPosition, startPlaying)
-            setShuffleMode(shuffleMode)
+            // One step: the queue is shuffled (or not) once, in the service.
+            musicService?.openQueue(queue, startPosition, startPlaying, shuffleMode)
         }
     }
 

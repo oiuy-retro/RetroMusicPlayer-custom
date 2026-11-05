@@ -543,6 +543,36 @@ class MusicService : MediaBrowserServiceCompat(),
         return duration
     }
 
+    private var reshuffleJob: kotlinx.coroutines.Job? = null
+
+    /**
+     * Runs the (possibly heavy) shuffle math off the main thread. The result is applied on the
+     * main thread only if the queue and position did not change meanwhile.
+     */
+    /** Called once when the user leaves Settings > Shuffle after changing something. */
+    fun reshuffleRemaining() {
+        if (shuffleMode != SHUFFLE_MODE_SHUFFLE) return
+        val pos = getPosition()
+        val queue = playingQueue
+        if (pos < 0 || pos >= queue.size) return
+        val played = ArrayList(queue.subList(0, pos))
+        val rest = ArrayList(queue.subList(pos, queue.size))
+        if (rest.size < 2) return
+        val size = queue.size
+        val currentSong = queue[pos]
+        reshuffleJob?.cancel()
+        reshuffleJob = serviceScope.launch(Default) {
+            makeShuffleList(this@MusicService, rest, 0) // the current song stays first
+            withContext(Main) {
+                if (playingQueue !== queue || playingQueue.size != size || getPosition() != pos ||
+                    playingQueue[pos] != currentSong || shuffleMode != SHUFFLE_MODE_SHUFFLE) return@withContext
+                playingQueue = ArrayList(played + rest)
+                position = pos
+                notifyChange(QUEUE_CHANGED)
+            }
+        }
+    }
+
     private fun getShuffleMode(): Int {
         return shuffleMode
     }
@@ -554,7 +584,7 @@ class MusicService : MediaBrowserServiceCompat(),
         when (shuffleMode) {
             SHUFFLE_MODE_SHUFFLE -> {
                 this.shuffleMode = shuffleMode
-                makeShuffleList(playingQueue, getPosition())
+                makeShuffleList(this, playingQueue, getPosition())
                 position = 0
             }
 
@@ -804,29 +834,40 @@ class MusicService : MediaBrowserServiceCompat(),
         return true
     }
 
+    /**
+     * Opens [playingQueue] and starts at [startPosition]. [shuffleMode] (default: the current
+     * mode) is applied in the same step, so a shuffled queue is built exactly once, with the
+     * start song at position 0, and the position is set before playback is started on another
+     * thread (no race with the queue the UI shows).
+     */
     fun openQueue(
         playingQueue: List<Song>?,
         startPosition: Int,
         startPlaying: Boolean,
+        shuffleMode: Int = this.shuffleMode,
     ) {
-        if (!playingQueue.isNullOrEmpty()
-            && startPosition >= 0 && startPosition < playingQueue.size
-        ) {
-            // it is important to copy the playing queue here first as we might add/remove songs later
-            originalPlayingQueue = ArrayList(playingQueue)
-            this.playingQueue = ArrayList(originalPlayingQueue)
-            var position = startPosition
-            if (shuffleMode == SHUFFLE_MODE_SHUFFLE) {
-                makeShuffleList(this.playingQueue, startPosition)
-                position = 0
+        if (playingQueue.isNullOrEmpty()) return
+        val opened = QueueOpener.open(
+            playingQueue, startPosition, shuffleMode == SHUFFLE_MODE_SHUFFLE
+        ) { list, current -> makeShuffleList(this, list, current) } ?: return
+        val modeChanged = this.shuffleMode != shuffleMode
+        if (modeChanged) {
+            this.shuffleMode = shuffleMode
+            PreferenceManager.getDefaultSharedPreferences(this).edit {
+                putInt(SAVED_SHUFFLE_MODE, shuffleMode)
             }
-            if (startPlaying) {
-                playSongAt(position)
-            } else {
-                setPosition(position)
-            }
-            notifyChange(QUEUE_CHANGED)
         }
+        // it is important to copy the playing queue here first as we might add/remove songs later
+        originalPlayingQueue = opened.original
+        this.playingQueue = opened.playing
+        this.position = opened.position
+        if (startPlaying) {
+            playSongAt(opened.position)
+        } else {
+            setPosition(opened.position)
+        }
+        if (modeChanged) handleAndSendChangeInternal(SHUFFLE_MODE_CHANGED)
+        notifyChange(QUEUE_CHANGED)
     }
 
     @Synchronized
@@ -883,8 +924,29 @@ class MusicService : MediaBrowserServiceCompat(),
         }
     }
 
+    /**
+     * Settings > Shuffle > "Reshuffle when the queue repeats": when the last song of a shuffled
+     * queue starts with Repeat all on, mix the other songs again so the next loop has a new order.
+     * The current song moves to the end so playback continues unchanged.
+     */
+    private fun reshuffleForLoopIfNeeded() {
+        if (shuffleMode != SHUFFLE_MODE_SHUFFLE || repeatMode != REPEAT_MODE_ALL) return
+        if (!isLastTrack || playingQueue.size < 3) return
+        if (!code.name.monkey.retromusic.shuffle.ShuffleSettings.reshuffleOnLoop(
+                PreferenceManager.getDefaultSharedPreferences(this)
+            )
+        ) return
+        val current = playingQueue[position]
+        val others = ArrayList(playingQueue.subList(0, position))
+        makeShuffleList(this, others, -1)
+        playingQueue = ArrayList(others + current)
+        position = playingQueue.size - 1
+        notifyChange(QUEUE_CHANGED)
+    }
+
     @Synchronized
     fun prepareNextImpl() {
+        reshuffleForLoopIfNeeded()
         try {
             val nextPosition = getNextPosition(false)
             playbackManager.setNextDataSource(getSongAt(nextPosition).uri)
@@ -1194,6 +1256,10 @@ class MusicService : MediaBrowserServiceCompat(),
                         SongPlayCountStore.getInstance(this@MusicService)
                             .bumpPlayCount(songPlayCountHelper.song.id)
                     }
+                    code.name.monkey.retromusic.shuffle.ShuffleQueueBuilder.onSongFinished(
+                        this@MusicService, songPlayCountHelper.song,
+                        songPlayCountHelper.shouldBumpPlayCount()
+                    )
                     songPlayCountHelper.notifySongChanged(currentSong)
                     storage.saveSong(currentSong)
                 }
@@ -1304,10 +1370,9 @@ class MusicService : MediaBrowserServiceCompat(),
             if (playlistSongs.isNotEmpty()) {
                 if (shuffleMode == SHUFFLE_MODE_SHUFFLE) {
                     val startPosition = Random().nextInt(playlistSongs.size)
-                    openQueue(playlistSongs, startPosition, true)
-                    setShuffleMode(shuffleMode)
+                    openQueue(playlistSongs, startPosition, true, SHUFFLE_MODE_SHUFFLE)
                 } else {
-                    openQueue(playlistSongs, 0, true)
+                    openQueue(playlistSongs, 0, true, shuffleMode)
                 }
             } else {
                 runOnUiThread {
