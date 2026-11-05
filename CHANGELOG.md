@@ -11,6 +11,11 @@ shared as APK files. For changes in the app itself, see the
 
 ## [Unreleased]
 
+### Added (branch `feature/shuffle-percent-limit`, versionCode 10720, 7.0.3-custom.7-beta.4)
+- Shuffle settings: the number next to each slider is now a box you can type into. Press Done or
+  leave the box to apply it. It's kept inside the slider's range, still keeps min/max pairs in
+  order, and empty or invalid input goes back to the old value.
+
 ### Fixed (branch `feature/shuffle-percent-limit`, versionCode 10719, 7.0.3-custom.7-beta.3)
 - The app could freeze while changing Folder/album block limits (time and percent). Block shuffle
   was slow on big libraries with small blocks and ran on the main thread after every setting change.

@@ -294,6 +294,16 @@ Options for all modes:
   the shuffled queue. They come back when shuffle is turned off, because the unshuffled queue is
   kept separately as before.
 
+### Typed slider values
+
+- Shuffle sliders use `EditableSeekBarPreference` (layout `list_item_view_seekbar_editable`): an
+  integer box plus a unit label replaces the value label. The old label stays hidden so slider
+  haptics still tick while dragging, and dragging updates the box live.
+- Done or focus loss runs `SliderInput.parse` (digits only, clamped to the slider range, else the
+  current value) and saves through the change listener, so `linkMinMax` still pushes the partner.
+- `ShuffleSettingsFragment.onPause` commits any unconfirmed typed value before `onStop` compares
+  the snapshot, so it counts as a change for the reshuffle-on-leave.
+
 ### Limits
 
 - Settings apply the next time shuffle is turned on or a shuffled queue is started. They don't

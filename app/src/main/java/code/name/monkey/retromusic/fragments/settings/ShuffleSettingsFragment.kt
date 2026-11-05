@@ -7,10 +7,12 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.preference.ListPreference
 import androidx.preference.Preference
+import androidx.preference.PreferenceGroup
 import androidx.preference.PreferenceManager
 import androidx.preference.SeekBarPreference
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.helper.MusicPlayerRemote
+import code.name.monkey.retromusic.preferences.EditableSeekBarPreference
 import code.name.monkey.retromusic.shuffle.ShuffleHistory
 import code.name.monkey.retromusic.shuffle.ShuffleSettings
 
@@ -39,6 +41,22 @@ class ShuffleSettingsFragment : AbsSettingsFragment() {
     override fun onResume() {
         super.onResume()
         if (snapshot == null) snapshot = shuffleSettings()
+    }
+
+    /** Apply any number typed into a slider box but not confirmed yet, before the onStop compare. */
+    override fun onPause() {
+        commitTypedValues(preferenceScreen)
+        super.onPause()
+    }
+
+    private fun commitTypedValues(group: PreferenceGroup?) {
+        group ?: return
+        for (i in 0 until group.preferenceCount) {
+            when (val p = group.getPreference(i)) {
+                is EditableSeekBarPreference -> p.commitPending()
+                is PreferenceGroup -> commitTypedValues(p)
+            }
+        }
     }
 
     /** Leaving the page: reshuffle the live queue once, only if a shuffle setting changed. */
