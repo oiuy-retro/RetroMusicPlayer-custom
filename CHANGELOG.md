@@ -14,6 +14,8 @@ shared as APK files. For changes in the app itself, see the
 ### Changed (branch `feature/built-in-eq`, versionCode 10722, 7.0.3-custom.6-beta.2)
 - Merged current main into the built-in equalizer branch, so the equalizer sits on top of the
   shuffle work, slider vibration, typed number boxes and Resume after other media.
+- The equalizer's sliders (bands, bass boost, virtualizer and loudness gain) now give the same
+  short tick while dragging as every other slider: one per 0.5 dB or 1 %.
 
 ### Changed (branch `feature/resume-after-other-media`, versionCode 10721, 7.0.3-custom.4-beta.5)
 - Merged current main into this branch so Resume after other media sits on top of the shuffle

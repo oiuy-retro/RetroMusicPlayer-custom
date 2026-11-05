@@ -17,6 +17,7 @@ import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.Fragment
+import code.name.monkey.appthemehelper.util.SliderHaptics
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.equalizer.CustomPreset
 import code.name.monkey.retromusic.equalizer.EqManager
@@ -82,12 +83,20 @@ class EqualizerFragment : Fragment() {
         setOnClickListener { onClick() }
     }
 
-    private fun slider(max: Int, value: Int, onStop: (Int) -> Unit, onMove: (Int) -> Unit = {}) =
+    /**
+     * [hapticStep]: one vibration tick each time a drag crosses this many units, using the same
+     * [SliderHaptics] as every other slider in the app.
+     */
+    private fun slider(max: Int, value: Int, hapticStep: Float, onStop: (Int) -> Unit, onMove: (Int) -> Unit = {}) =
         SeekBar(requireContext()).apply {
             this.max = max
             progress = value
+            SliderHaptics.onValue(this, value.toFloat(), false, hapticStep)
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(sb: SeekBar, p: Int, fromUser: Boolean) { if (fromUser) onMove(p) }
+                override fun onProgressChanged(sb: SeekBar, p: Int, fromUser: Boolean) {
+                    SliderHaptics.onValue(sb, p.toFloat(), fromUser, hapticStep)
+                    if (fromUser) onMove(p)
+                }
                 override fun onStartTrackingTouch(sb: SeekBar) {}
                 override fun onStopTrackingTouch(sb: SeekBar) = onStop(sb.progress)
             })
@@ -134,7 +143,7 @@ class EqualizerFragment : Fragment() {
                 setLabel(levels[i])
                 root.addView(label)
                 val range = eqInfo.maxLevel - eqInfo.minLevel
-                root.addView(slider(range, levels[i] - eqInfo.minLevel,
+                root.addView(slider(range, levels[i] - eqInfo.minLevel, HAPTIC_STEP_DB,
                     onStop = { p ->
                         levels[i] = p + eqInfo.minLevel
                         EqManager.update(EqManager.currentSettings().copy(bandLevels = levels.toList(), presetName = null))
@@ -149,18 +158,18 @@ class EqualizerFragment : Fragment() {
         if (eqInfo?.bassBoostSupported != false) {
             val l = text(getString(R.string.eq_bass_boost, s.bassBoost / 10))
             root.addView(l)
-            root.addView(slider(1000, s.bassBoost, onStop = { EqManager.update(EqManager.currentSettings().copy(bassBoost = it)) },
+            root.addView(slider(1000, s.bassBoost, HAPTIC_STEP_PERCENT, onStop = { EqManager.update(EqManager.currentSettings().copy(bassBoost = it)) },
                 onMove = { l.text = getString(R.string.eq_bass_boost, it / 10) }))
         }
         if (eqInfo?.virtualizerSupported == true) {
             val l = text(getString(R.string.eq_virtualizer, s.virtualizer / 10))
             root.addView(l)
-            root.addView(slider(1000, s.virtualizer, onStop = { EqManager.update(EqManager.currentSettings().copy(virtualizer = it)) },
+            root.addView(slider(1000, s.virtualizer, HAPTIC_STEP_PERCENT, onStop = { EqManager.update(EqManager.currentSettings().copy(virtualizer = it)) },
                 onMove = { l.text = getString(R.string.eq_virtualizer, it / 10) }))
         }
         val ll = text(getString(R.string.eq_loudness, s.loudnessGain / 100f))
         root.addView(ll)
-        root.addView(slider(EqManager.MAX_LOUDNESS_MB, s.loudnessGain, onStop = { EqManager.update(EqManager.currentSettings().copy(loudnessGain = it)) },
+        root.addView(slider(EqManager.MAX_LOUDNESS_MB, s.loudnessGain, HAPTIC_STEP_DB, onStop = { EqManager.update(EqManager.currentSettings().copy(loudnessGain = it)) },
             onMove = { ll.text = getString(R.string.eq_loudness, it / 100f) }))
 
         root.addView(button(getString(R.string.eq_manage_profiles)) { manageProfiles() })
@@ -259,5 +268,12 @@ class EqualizerFragment : Fragment() {
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+    }
+
+    private companion object {
+        /** Band and loudness sliders are in millibels: one tick per 0.5 dB. */
+        const val HAPTIC_STEP_DB = 50f
+        /** Bass boost and virtualizer go 0-1000 and show percent: one tick per 1 %. */
+        const val HAPTIC_STEP_PERCENT = 10f
     }
 }

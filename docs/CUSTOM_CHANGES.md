@@ -191,6 +191,10 @@ How it works:
 - With per-device profiles off, everything uses the default profile. A device seen for the first
   time gets a copy of the default profile.
 - The Nearby devices permission is asked for only when per-device profiles are turned on.
+- Every equalizer slider (`EqualizerFragment.slider`) calls `SliderHaptics.onValue`, the same
+  tick as the other sliders: band and loudness sliders every 50 mB (0.5 dB), bass boost and
+  virtualizer every 10 (1 %). They are plain `SeekBar`s built in code, not preferences, so they
+  have no typed number box.
 
 ## Resume after other media
 
