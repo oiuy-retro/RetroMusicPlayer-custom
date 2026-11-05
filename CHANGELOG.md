@@ -11,6 +11,13 @@ shared as APK files. For changes in the app itself, see the
 
 ## [Unreleased]
 
+### Changed (branch `feature/built-in-eq`, versionCode 10723, 7.0.3-custom.6-beta.3)
+- Every slider now ticks whenever the number it shows changes, not on a coarser step. EQ bands
+  and loudness tick every 0.1 dB (they already showed one decimal), bass boost and virtualizer
+  every 1 %, player seek bars every displayed second (was every 5 s), and settings sliders at
+  their shown step. `SliderHaptics` remembers the last displayed value per slider so new
+  sliders follow the same rule. The 12 ms rate limit is unchanged.
+
 ### Changed (branch `feature/built-in-eq`, versionCode 10722, 7.0.3-custom.6-beta.2)
 - Merged current main into the built-in equalizer branch, so the equalizer sits on top of the
   shuffle work, slider vibration, typed number boxes and Resume after other media.

@@ -84,17 +84,22 @@ class EqualizerFragment : Fragment() {
     }
 
     /**
-     * [hapticStep]: one vibration tick each time a drag crosses this many units, using the same
-     * [SliderHaptics] as every other slider in the app.
+     * [displayOf] returns the number the user sees for a progress value. Haptics tick whenever
+     * that displayed string changes (same [SliderHaptics] rule as every other slider).
      */
-    private fun slider(max: Int, value: Int, hapticStep: Float, onStop: (Int) -> Unit, onMove: (Int) -> Unit = {}) =
-        SeekBar(requireContext()).apply {
+    private fun slider(
+        max: Int,
+        value: Int,
+        displayOf: (Int) -> String,
+        onStop: (Int) -> Unit,
+        onMove: (Int) -> Unit = {},
+    ) = SeekBar(requireContext()).apply {
             this.max = max
             progress = value
-            SliderHaptics.onValue(this, value.toFloat(), false, hapticStep)
+            SliderHaptics.onLabel(this, displayOf(value), false)
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, p: Int, fromUser: Boolean) {
-                    SliderHaptics.onValue(sb, p.toFloat(), fromUser, hapticStep)
+                    SliderHaptics.onLabel(sb, displayOf(p), fromUser)
                     if (fromUser) onMove(p)
                 }
                 override fun onStartTrackingTouch(sb: SeekBar) {}
@@ -143,7 +148,8 @@ class EqualizerFragment : Fragment() {
                 setLabel(levels[i])
                 root.addView(label)
                 val range = eqInfo.maxLevel - eqInfo.minLevel
-                root.addView(slider(range, levels[i] - eqInfo.minLevel, HAPTIC_STEP_DB,
+                root.addView(slider(range, levels[i] - eqInfo.minLevel,
+                    displayOf = { p -> "%+.1f".format((p + eqInfo.minLevel) / 100f) },
                     onStop = { p ->
                         levels[i] = p + eqInfo.minLevel
                         EqManager.update(EqManager.currentSettings().copy(bandLevels = levels.toList(), presetName = null))
@@ -158,18 +164,24 @@ class EqualizerFragment : Fragment() {
         if (eqInfo?.bassBoostSupported != false) {
             val l = text(getString(R.string.eq_bass_boost, s.bassBoost / 10))
             root.addView(l)
-            root.addView(slider(1000, s.bassBoost, HAPTIC_STEP_PERCENT, onStop = { EqManager.update(EqManager.currentSettings().copy(bassBoost = it)) },
+            root.addView(slider(1000, s.bassBoost,
+                displayOf = { (it / 10).toString() },
+                onStop = { EqManager.update(EqManager.currentSettings().copy(bassBoost = it)) },
                 onMove = { l.text = getString(R.string.eq_bass_boost, it / 10) }))
         }
         if (eqInfo?.virtualizerSupported == true) {
             val l = text(getString(R.string.eq_virtualizer, s.virtualizer / 10))
             root.addView(l)
-            root.addView(slider(1000, s.virtualizer, HAPTIC_STEP_PERCENT, onStop = { EqManager.update(EqManager.currentSettings().copy(virtualizer = it)) },
+            root.addView(slider(1000, s.virtualizer,
+                displayOf = { (it / 10).toString() },
+                onStop = { EqManager.update(EqManager.currentSettings().copy(virtualizer = it)) },
                 onMove = { l.text = getString(R.string.eq_virtualizer, it / 10) }))
         }
         val ll = text(getString(R.string.eq_loudness, s.loudnessGain / 100f))
         root.addView(ll)
-        root.addView(slider(EqManager.MAX_LOUDNESS_MB, s.loudnessGain, HAPTIC_STEP_DB, onStop = { EqManager.update(EqManager.currentSettings().copy(loudnessGain = it)) },
+        root.addView(slider(EqManager.MAX_LOUDNESS_MB, s.loudnessGain,
+            displayOf = { "%.1f".format(it / 100f) },
+            onStop = { EqManager.update(EqManager.currentSettings().copy(loudnessGain = it)) },
             onMove = { ll.text = getString(R.string.eq_loudness, it / 100f) }))
 
         root.addView(button(getString(R.string.eq_manage_profiles)) { manageProfiles() })
@@ -270,10 +282,4 @@ class EqualizerFragment : Fragment() {
             .show()
     }
 
-    private companion object {
-        /** Band and loudness sliders are in millibels: one tick per 0.5 dB. */
-        const val HAPTIC_STEP_DB = 50f
-        /** Bass boost and virtualizer go 0-1000 and show percent: one tick per 1 %. */
-        const val HAPTIC_STEP_PERCENT = 10f
-    }
 }

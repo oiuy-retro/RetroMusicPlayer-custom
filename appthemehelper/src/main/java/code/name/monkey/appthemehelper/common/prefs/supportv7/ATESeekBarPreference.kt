@@ -52,9 +52,9 @@ open class ATESeekBarPreference @JvmOverloads constructor(
             appendUnit(editableText)
             doAfterTextChanged {
                 appendUnit(it)
-                // The label follows the value while dragging: tick once per step.
-                val digits = it.toString().filter { c -> c.isDigit() || c == '-' }
-                digits.toFloatOrNull()?.let { v -> SliderHaptics.onValue(seekBar, v, seekBar.isPressed) }
+                // The label follows the value while dragging: tick when the shown digits change.
+                val digits = it.toString().filter { c -> c.isDigit() || c == '-' || c == '.' }
+                if (digits.isNotEmpty()) SliderHaptics.onLabel(seekBar, digits, seekBar.isPressed)
             }
         }
     }

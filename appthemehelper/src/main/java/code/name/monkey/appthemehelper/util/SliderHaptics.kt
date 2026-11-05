@@ -5,6 +5,11 @@
  * app/src/main/java/helium314/keyboard/settings/dialogs/SliderDialog.kt, performSliderStepHaptic),
  * Copyright HeliBoard contributors, licensed under the Apache License 2.0.
  * See THIRD_PARTY_NOTICES.md.
+ *
+ * Rule: tick whenever the value the user sees changes (the formatted number or label),
+ * not on every raw progress unit. Callers pass either the display label ([onLabel]) or a
+ * value plus the display step size ([onValue]). A 12 ms rate limit keeps very fast drags
+ * from buzzing continuously; slow drags still tick on every displayed change.
  */
 package code.name.monkey.appthemehelper.util
 
@@ -27,7 +32,8 @@ object SliderHaptics {
     private const val STEP_VIBRATION_AMPLITUDE = 65
 
     private var lastStepHapticUptimeMs = 0L
-    private val lastBucket = WeakHashMap<View, Long>()
+    /** Last display key per slider view (label string or numeric bucket). */
+    private val lastDisplay = WeakHashMap<View, Any?>()
 
     @Suppress("DEPRECATION")
     private fun vibrator(context: Context): Vibrator? =
@@ -37,7 +43,7 @@ object SliderHaptics {
             context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
         }
 
-    /** Light tick for one +1 / -1 step while dragging (HeliBoard's performSliderStepHaptic). */
+    /** Light tick for one display-step while dragging (HeliBoard's performSliderStepHaptic). */
     @Suppress("DEPRECATION")
     fun step(view: View) {
         val now = SystemClock.uptimeMillis()
@@ -62,24 +68,58 @@ object SliderHaptics {
     }
 
     /**
-     * Call from a value-change listener. Ticks when a user drag moves the value into a new
-     * step of size [stepSize] (e.g. 1 for percent sliders, 5000 for a seek bar in ms).
+     * Bucket a raw slider [value] at display precision [stepSize] (same units as [value]).
+     * Pure; safe to unit-test. [stepSize] <= 0 is treated as 1.
+     */
+    fun displayBucket(value: Float, stepSize: Float): Long {
+        val step = if (stepSize > 0f) stepSize else 1f
+        return floor(value / step).toLong()
+    }
+
+    /**
+     * Whether a user drag should tick when the display key moves from [previous] to [current].
+     * Pure; safe to unit-test. First observation (previous == null) never ticks.
+     */
+    fun shouldTick(previous: Any?, current: Any?, fromUser: Boolean): Boolean =
+        fromUser && previous != null && previous != current
+
+    /**
+     * Core entry: tick when the displayed key for this slider changes during a user drag.
+     * [displayKey] should be whatever the user sees (formatted label, or a bucket at display
+     * precision). Pass a non-user update first so the baseline is recorded without a tick.
+     */
+    fun onDisplay(view: View, displayKey: Any?, fromUser: Boolean) {
+        val previous = lastDisplay.put(view, displayKey)
+        if (shouldTick(previous, displayKey, fromUser)) step(view)
+    }
+
+    /** Convenience: tick when the formatted label string changes. */
+    fun onLabel(view: View, label: CharSequence?, fromUser: Boolean) {
+        onDisplay(view, label?.toString(), fromUser)
+    }
+
+    /**
+     * Convenience: tick when [value] crosses a new step of size [stepSize]
+     * (e.g. 1 for integer percent, 10 for 0.1 dB in millibels, 1000 for one second in ms).
      */
     fun onValue(view: View, value: Float, fromUser: Boolean, stepSize: Float = 1f) {
-        val bucket = floor(value / (if (stepSize > 0f) stepSize else 1f)).toLong()
-        val previous = lastBucket.put(view, bucket)
-        if (fromUser && previous != null && previous != bucket) step(view)
+        onDisplay(view, displayBucket(value, stepSize), fromUser)
     }
 
     /** Adds haptics to a Material [Slider]. [stepSize] 0 = the slider's own step (or 1). */
     fun attach(slider: Slider, stepSize: Float = 0f) {
-        lastBucket[slider] = Long.MIN_VALUE
+        lastDisplay[slider] = null
         slider.addOnChangeListener { s, value, fromUser ->
             val step = if (stepSize > 0f) stepSize else s.stepSize.takeIf { it > 0f } ?: 1f
             onValue(s, value, fromUser, step)
         }
     }
 
-    /** Seek bar steps: one tick per 5 seconds of song position. */
-    const val SEEK_STEP_MS = 5_000f
+    /** Clear the remembered display key (e.g. when a view is rebound). */
+    fun reset(view: View) {
+        lastDisplay.remove(view)
+    }
+
+    /** Player seek bars: time text is MM:SS, so one tick per displayed second. */
+    const val SEEK_STEP_MS = 1_000f
 }

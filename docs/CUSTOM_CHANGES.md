@@ -191,10 +191,10 @@ How it works:
 - With per-device profiles off, everything uses the default profile. A device seen for the first
   time gets a copy of the default profile.
 - The Nearby devices permission is asked for only when per-device profiles are turned on.
-- Every equalizer slider (`EqualizerFragment.slider`) calls `SliderHaptics.onValue`, the same
-  tick as the other sliders: band and loudness sliders every 50 mB (0.5 dB), bass boost and
-  virtualizer every 10 (1 %). They are plain `SeekBar`s built in code, not preferences, so they
-  have no typed number box.
+- Every equalizer slider (`EqualizerFragment.slider`) calls `SliderHaptics.onLabel` with the
+  number the user sees, so it ticks when that display changes: bands and loudness every 0.1 dB
+  (levels are still stored and applied in millibels), bass boost and virtualizer every 1 %.
+  They are plain `SeekBar`s built in code, not preferences, so they have no typed number box.
 
 ## Resume after other media
 
@@ -347,14 +347,16 @@ unchanged. If building the order fails for any reason, it also falls back to the
   to rescan the whole pool for every block, which froze on big libraries with 1-song blocks.
 - **Slider haptics**: one shared helper, `appthemehelper/.../util/SliderHaptics.kt`, adapted
   from HeliBoard-custom's `performSliderStepHaptic` (Apache-2.0, see `THIRD_PARTY_NOTICES.md`).
-  Per step: `performHapticFeedback` (`SEGMENT_FREQUENT_TICK` on API 34+, `TEXT_HANDLE_MOVE` on
-  8.1+, else `CLOCK_TICK`) with `FLAG_IGNORE_GLOBAL_SETTING`, plus a 5 ms vibration at amplitude
-  65, at most once per 12 ms. Like HeliBoard, it ignores the system touch-vibration switch and
-  uses the existing VIBRATE permission. Hooked into `ATESeekBarPreference` (all settings
-  sliders, via the value label), the player seek bars (`AbsPlayerControlsFragment`, Circle,
-  Gradient, Classic, Drive mode; one tick per 5 s), the player volume slider (`VolumeFragment`),
-  Circle's volume ring, the sleep timer, playback speed/pitch and the audio fade duration
-  dialog.
+  Rule: tick whenever the displayed number/label for that slider changes. `onLabel` /
+  `onDisplay` remember the last shown key per view; `onValue(value, stepSize)` buckets at the
+  display precision. Per tick: `performHapticFeedback` (`SEGMENT_FREQUENT_TICK` on API 34+,
+  `TEXT_HANDLE_MOVE` on 8.1+, else `CLOCK_TICK`) with `FLAG_IGNORE_GLOBAL_SETTING`, plus a 5 ms
+  vibration at amplitude 65, at most once per 12 ms. Like HeliBoard, it ignores the system
+  touch-vibration switch and uses the existing VIBRATE permission. Hooked into
+  `ATESeekBarPreference` (settings sliders, via the value label digits), the player seek bars
+  (`AbsPlayerControlsFragment`, Circle, Gradient, Classic, Drive mode; one tick per displayed
+  second), the player volume slider (`VolumeFragment`), Circle's volume ring, the sleep timer,
+  playback speed/pitch, the audio fade duration dialog, and the built-in equalizer sliders.
 - **Folder or album blocks**: the grouping is the album (`albumId`) or the song's parent folder
   (taken from the file path). A random song is picked, then songs from its group follow until the
   block limits are reached. "In order from the first pick" continues by track number (album) or
