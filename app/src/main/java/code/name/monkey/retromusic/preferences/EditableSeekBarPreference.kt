@@ -4,6 +4,7 @@
 package code.name.monkey.retromusic.preferences
 
 import android.content.Context
+import android.text.InputType
 import android.util.AttributeSet
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -23,6 +24,9 @@ import code.name.monkey.retromusic.R
  * leaving the box) clamps it to the slider's range and saves it through the normal change
  * listener, so linked min/max pairs still push each other. The hidden value label is kept so the
  * slider haptics keep ticking while dragging.
+ *
+ * Set [halfSecondSteps] when the preference stores half-second steps (1 = 0.5 s) but the box
+ * should show and accept seconds with one decimal place.
  */
 class EditableSeekBarPreference @JvmOverloads constructor(
     context: Context,
@@ -32,6 +36,13 @@ class EditableSeekBarPreference @JvmOverloads constructor(
 ) : ATESeekBarPreference(context, attrs, defStyleAttr, defStyleRes) {
 
     private var box: EditText? = null
+
+    /** When true, the box shows seconds (one decimal) and maps to/from half-second step storage. */
+    var halfSecondSteps: Boolean = false
+        set(value) {
+            field = value
+            box?.let { bindBox(it) }
+        }
 
     override fun onBindViewHolder(view: PreferenceViewHolder) {
         super.onBindViewHolder(view)
@@ -47,13 +58,15 @@ class EditableSeekBarPreference @JvmOverloads constructor(
         edit.tag = this
         edit.onFocusChangeListener = null
         edit.setOnEditorActionListener(null)
-        edit.setText(value.toString())
+        bindBox(edit)
         // Dragging updates the (hidden) label live; mirror it into the box unless the user is typing.
         (label.getTag(R.id.seekbar_edit) as? android.text.TextWatcher)?.let(label::removeTextChangedListener)
         val watcher = label.doAfterTextChanged {
             if (edit.tag !== this || edit.hasFocus()) return@doAfterTextChanged
-            val digits = it.toString().filter { c -> c.isDigit() }
-            if (digits.isNotEmpty() && edit.text.toString() != digits) edit.setText(digits)
+            val digits = it.toString().filter { c -> c.isDigit() || c == '-' }
+            val steps = digits.toIntOrNull() ?: return@doAfterTextChanged
+            val shown = formatValue(steps)
+            if (edit.text.toString() != shown) edit.setText(shown)
         }
         label.setTag(R.id.seekbar_edit, watcher)
         edit.setOnFocusChangeListener { _, hasFocus -> if (!hasFocus) commit(edit) }
@@ -73,10 +86,27 @@ class EditableSeekBarPreference @JvmOverloads constructor(
         if (edit.tag === this) commit(edit)
     }
 
+    private fun bindBox(edit: EditText) {
+        edit.inputType = if (halfSecondSteps) {
+            InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+        } else {
+            InputType.TYPE_CLASS_NUMBER
+        }
+        edit.setText(formatValue(value))
+    }
+
+    private fun formatValue(steps: Int): String =
+        if (halfSecondSteps) SliderInput.formatHalfSecondSteps(steps) else steps.toString()
+
+    private fun parseValue(text: CharSequence?): Int =
+        if (halfSecondSteps) SliderInput.parseHalfSecondSteps(text, value, min, max)
+        else SliderInput.parse(text, value, min, max)
+
     private fun commit(edit: EditText) {
         if (edit.tag !== this) return
-        val n = SliderInput.parse(edit.text, value, min, max)
+        val n = parseValue(edit.text)
         if (n != value && callChangeListener(n)) value = n
-        if (edit.text.toString() != value.toString()) edit.setText(value.toString())
+        val shown = formatValue(value)
+        if (edit.text.toString() != shown) edit.setText(shown)
     }
 }

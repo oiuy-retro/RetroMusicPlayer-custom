@@ -11,6 +11,12 @@ shared as APK files. For changes in the app itself, see the
 
 ## [Unreleased]
 
+### Changed (branch `feature/resume-after-other-media`, versionCode 10721, 7.0.3-custom.4-beta.5)
+- Merged current main into this branch so Resume after other media sits on top of the shuffle
+  work, slider vibration and typed number boxes. The Resume delay slider now uses the same
+  vibration and typed box as the Shuffle page (seconds with one decimal, 0.5 to 20, rounded to
+  the nearest half second).
+
 ### Added (branch `feature/shuffle-percent-limit`, versionCode 10720, 7.0.3-custom.7-beta.4)
 - Shuffle settings: the number next to each slider is now a box you can type into. Press Done or
   leave the box to apply it. It's kept inside the slider's range, still keeps min/max pairs in
@@ -36,6 +42,24 @@ shared as APK files. For changes in the app itself, see the
   first.
 
 ### Added
+- "Resume after other media" setting in Audio, under "Always play" (off by default). When it's on
+  and Always play is off, Retro pauses when another app starts playing media and resumes about a
+  second after that media stops. Short gaps, such as between two videos, don't trigger a resume.
+  A manual play, pause or stop cancels the automatic resume. versionCode 10709.
+
+### Fixed
+- Resume after other media never resumed (seen on Android 17): paused players still counted as
+  playing. It now checks whether media audio is actually playing, and retries if Android refuses
+  audio focus.
+- A paused browser video still counted as playing, because browsers keep their audio stream open.
+  New optional "Detect paused videos" setting (notification access) reads other apps' play/pause
+  state instead. Retro also no longer stops its service while a resume is pending.
+- "Resume after a set time" switch with a 0.5-20 s delay slider (default 3 s): resumes after the
+  delay even if other media still seems to be playing.
+- The notification-access listener now unbinds itself as soon as it connects and blocks every
+  notification-reading method, so it can't read notifications.
+- Temporary diagnostic: "Resume log" switch (off by default; turning it off deletes the log) and
+  "Copy resume log" in Audio settings, which copies the last 200 resume events.
 - Documentation for the custom build: README, this changelog, `docs/BUILDING.md`,
   `docs/CUSTOM_CHANGES.md`, `docs/UPDATING_FROM_UPSTREAM.md` and `retro.properties.example`.
   The upstream README is now in `docs/UPSTREAM_README.md`.

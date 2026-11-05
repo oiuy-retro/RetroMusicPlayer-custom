@@ -322,6 +322,7 @@
     <string name="pref_summary_library_categories">Configure visibility and order of library categories.</string>
     <string name="pref_summary_lock_screen">Use Retro Music\'s custom lockscreen controls</string>
     <string name="pref_summary_manage_audio_focus">Always play audio in background regardless of anything else being played</string>
+    <string name="pref_summary_resume_after_focus_loss">Pause while another app plays, then resume when it stops. Has no effect while Always play is on.</string>
     <string name="pref_summary_open_source_licences">License details for open source software</string>
     <string name="pref_summary_pause_history">When enabled, newly played songs won\'t show in history</string>
     <string name="pref_summary_remember_tab">Navigate to the last used tab on start</string>
@@ -362,6 +363,18 @@
     <string name="pref_title_lyrics_screen_on">Keep screen on when showing lyrics</string>
     <string name="pref_title_lyrics_type">Lyrics type</string>
     <string name="pref_title_manage_audio_focus">Always play</string>
+    <string name="pref_title_resume_timed_fallback">Resume after a set time</string>
+    <string name="pref_summary_resume_timed_fallback">Resume after the delay below even if other media still seems to be playing. Detection can still resume sooner.</string>
+    <string name="pref_title_resume_timed_fallback_delay">Resume delay</string>
+    <string name="pref_title_media_state_access">Detect paused videos</string>
+    <string name="pref_summary_media_state_access">Optional. Lets Retro see when another app, such as a browser, pauses its media. Android lists this as notification access, but Retro only reads play/pause state and stores nothing. Tap to open the setting.</string>
+    <string name="pref_summary_media_state_access_on">On. Retro reads only other apps\' play/pause state. Tap to change.</string>
+    <string name="pref_title_resume_log_enabled">Resume log</string>
+    <string name="pref_summary_resume_log_enabled">Temporary diagnostic: record Resume after other media events on this device. Turning it off deletes the log.</string>
+    <string name="pref_title_copy_resume_log">Copy resume log</string>
+    <string name="pref_summary_copy_resume_log">Temporary diagnostic: copy the Resume after other media log to paste in a bug report.</string>
+    <string name="resume_log_copied">Resume log copied</string>
+    <string name="pref_title_resume_after_focus_loss">Resume after other media</string>
     <string name="pref_title_now_playing_screen_appearance">Now playing theme</string>
     <string name="pref_title_open_source_licences">Open source licences</string>
     <string name="pref_title_pause_history">Pause history</string>

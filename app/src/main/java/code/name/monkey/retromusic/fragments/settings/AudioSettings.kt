@@ -15,17 +15,24 @@
 package code.name.monkey.retromusic.fragments.settings
 
 import android.Manifest.permission.BLUETOOTH_CONNECT
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.media.audiofx.AudioEffect
 import android.os.Bundle
 import androidx.core.app.ActivityCompat
+import androidx.core.content.getSystemService
 import androidx.preference.Preference
+import code.name.monkey.retromusic.preferences.EditableSeekBarPreference
 import code.name.monkey.appthemehelper.util.VersionUtils
 import code.name.monkey.retromusic.BLUETOOTH_PLAYBACK
 import code.name.monkey.retromusic.EQUALIZER
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.activities.base.AbsBaseActivity.Companion.BLUETOOTH_PERMISSION_REQUEST
+import code.name.monkey.retromusic.extensions.showToast
+import code.name.monkey.retromusic.service.MediaSessionWatcher
+import code.name.monkey.retromusic.service.ResumeLog
 import code.name.monkey.retromusic.util.NavigationUtil
 
 /**
@@ -43,6 +50,33 @@ class AudioSettings : AbsSettingsFragment() {
         }
         eqPreference?.setOnPreferenceClickListener {
             NavigationUtil.openEqualizer(requireActivity())
+            true
+        }
+        findPreference<Preference>("media_state_access")?.apply {
+            setSummary(
+                if (MediaSessionWatcher.hasAccess(requireContext())) R.string.pref_summary_media_state_access_on
+                else R.string.pref_summary_media_state_access
+            )
+            setOnPreferenceClickListener {
+                startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
+                true
+            }
+        }
+        findPreference<EditableSeekBarPreference>("resume_timed_fallback_delay")?.apply {
+            halfSecondSteps = true
+            // Value is shown in the typed box (seconds with one decimal); no separate summary.
+            summary = null
+        }
+        // Temporary diagnostic for Resume after other media
+        findPreference<Preference>(ResumeLog.ENABLED_KEY)?.setOnPreferenceChangeListener { _, on ->
+            if (on == false) ResumeLog.clear(requireContext())
+            true
+        }
+        findPreference<Preference>("copy_resume_log")?.setOnPreferenceClickListener {
+            val ctx = requireContext()
+            ctx.getSystemService<ClipboardManager>()
+                ?.setPrimaryClip(ClipData.newPlainText("Resume log", ResumeLog.text(ctx)))
+            ctx.showToast(R.string.resume_log_copied)
             true
         }
         val bluetoothPreference: Preference? = findPreference(BLUETOOTH_PLAYBACK)
@@ -66,12 +100,18 @@ class AudioSettings : AbsSettingsFragment() {
         }
     }
 
+
     private fun hasEqualizer(): Boolean {
         val effects = Intent(AudioEffect.ACTION_DISPLAY_AUDIO_EFFECT_CONTROL_PANEL)
 
         val pm = requireActivity().packageManager
         val ri = pm.resolveActivity(effects, 0)
         return ri != null
+    }
+
+    override fun onResume() {
+        super.onResume()
+        invalidateSettings()
     }
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {

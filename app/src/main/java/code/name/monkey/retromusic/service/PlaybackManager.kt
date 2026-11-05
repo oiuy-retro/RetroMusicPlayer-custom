@@ -87,6 +87,10 @@ class PlaybackManager(val context: Context) {
                     onPause()
                 }
             }
+        } else {
+            // An explicit pause while already paused (e.g. after another app took focus)
+            // must also cancel any pending automatic resume.
+            (playback as? AudioManagerPlayback)?.clearPendingFocusResume("pause while already paused")
         }
     }
 
@@ -189,6 +193,13 @@ class PlaybackManager(val context: Context) {
         } else {
             CrossFadePlayer(context)
         }
+    }
+
+    val isResumePending: Boolean
+        get() = (playback as? AudioManagerPlayback)?.isResumePending == true
+
+    fun onFocusResumeSettingsChanged() {
+        (playback as? AudioManagerPlayback)?.onFocusResumeSettingsChanged()
     }
 
     fun setPlayerGain(gain: Float) {
