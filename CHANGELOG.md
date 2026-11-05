@@ -13,7 +13,9 @@ shared as APK files. For changes in the app itself, see the
 
 ### Changed (branch `feature/resume-after-other-media`, versionCode 10721, 7.0.3-custom.4-beta.5)
 - Merged current main into this branch so Resume after other media sits on top of the shuffle
-  work, slider vibration and typed number boxes.
+  work, slider vibration and typed number boxes. The Resume delay slider now uses the same
+  vibration and typed box as the Shuffle page (seconds with one decimal, 0.5 to 20, rounded to
+  the nearest half second).
 
 ### Added (branch `feature/shuffle-percent-limit`, versionCode 10720, 7.0.3-custom.7-beta.4)
 - Shuffle settings: the number next to each slider is now a box you can type into. Press Done or

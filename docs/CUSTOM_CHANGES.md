@@ -208,10 +208,13 @@ still applies.
     `setNotificationsShown`, channel getters) can't be overridden, so the unit test
     `NotificationListenerGuardTest` fails if any other source file mentions a notification API.
   - Timed fallback: `resume_timed_fallback` (off by default) and `resume_timed_fallback_delay`
-    (stored as half-second steps 1-40, i.e. 0.5-20 s, default 6 = 3 s; the slider maps them and
-    the summary shows e.g. "3.0 s"). When on, Retro resumes after that delay even if other media
-    still looks active, using the same focus retries. Detection can still resume sooner. Any
-    explicit play, pause or stop, or turning Resume after other media off, cancels it.
+    (stored as half-second steps 1-40, i.e. 0.5-20 s, default 6 = 3 s). The slider is an
+    `EditableSeekBarPreference` with `halfSecondSteps`: the box shows seconds with one decimal
+    (e.g. "3.0"), accepts a typed value rounded to the nearest 0.5 s
+    (`SliderInput.parseHalfSecondSteps`), and uses the same slider haptics as every other
+    settings slider. When on, Retro resumes after that delay even if other media still looks
+    active, using the same focus retries. Detection can still resume sooner. Any explicit play,
+    pause or stop, or turning Resume after other media off, cancels it.
   - While a resume is pending, `MusicService.onUnbind` doesn't call `stopSelf()` and the service
     stays in the foreground (Android 17 refuses audio focus to background apps without one).
   - Temporary diagnostic: `ResumeLog` keeps the last 200 events in memory and in

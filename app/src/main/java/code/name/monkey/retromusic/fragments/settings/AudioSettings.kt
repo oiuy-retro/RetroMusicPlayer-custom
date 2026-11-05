@@ -24,6 +24,7 @@ import android.os.Bundle
 import androidx.core.app.ActivityCompat
 import androidx.core.content.getSystemService
 import androidx.preference.Preference
+import code.name.monkey.retromusic.preferences.EditableSeekBarPreference
 import code.name.monkey.appthemehelper.util.VersionUtils
 import code.name.monkey.retromusic.BLUETOOTH_PLAYBACK
 import code.name.monkey.retromusic.EQUALIZER
@@ -33,7 +34,6 @@ import code.name.monkey.retromusic.extensions.showToast
 import code.name.monkey.retromusic.service.MediaSessionWatcher
 import code.name.monkey.retromusic.service.ResumeLog
 import code.name.monkey.retromusic.util.NavigationUtil
-import code.name.monkey.retromusic.util.PreferenceUtil
 
 /**
  * @author Hemanth S (h4h13).
@@ -62,12 +62,10 @@ class AudioSettings : AbsSettingsFragment() {
                 true
             }
         }
-        findPreference<Preference>("resume_timed_fallback_delay")?.apply {
-            summary = delayText(PreferenceUtil.resumeTimedFallbackDelayMs)
-            setOnPreferenceChangeListener { pref, value ->
-                pref.summary = delayText((value as Int).coerceIn(1, 40) * 500L)
-                true
-            }
+        findPreference<EditableSeekBarPreference>("resume_timed_fallback_delay")?.apply {
+            halfSecondSteps = true
+            // Value is shown in the typed box (seconds with one decimal); no separate summary.
+            summary = null
         }
         // Temporary diagnostic for Resume after other media
         findPreference<Preference>(ResumeLog.ENABLED_KEY)?.setOnPreferenceChangeListener { _, on ->
@@ -102,7 +100,6 @@ class AudioSettings : AbsSettingsFragment() {
         }
     }
 
-    private fun delayText(ms: Long) = String.format(java.util.Locale.getDefault(), "%.1f s", ms / 1000f)
 
     private fun hasEqualizer(): Boolean {
         val effects = Intent(AudioEffect.ACTION_DISPLAY_AUDIO_EFFECT_CONTROL_PANEL)

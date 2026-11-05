@@ -30,15 +30,16 @@
         android:summary="@string/pref_summary_resume_timed_fallback"
         android:title="@string/pref_title_resume_timed_fallback" />
 
-    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+    <code.name.monkey.retromusic.preferences.EditableSeekBarPreference
         android:defaultValue="6"
         android:dependency="resume_timed_fallback"
         android:key="resume_timed_fallback_delay"
-        android:layout="@layout/list_item_view_seekbar"
+        android:layout="@layout/list_item_view_seekbar_editable"
         android:max="40"
         app:min="1"
         app:updatesContinuously="true"
         android:title="@string/pref_title_resume_timed_fallback_delay"
+        app:ateKey_pref_unit="s"
         app:showSeekBarValue="false" />
 
     <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreference
