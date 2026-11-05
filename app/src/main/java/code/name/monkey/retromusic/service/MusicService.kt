@@ -319,6 +319,7 @@ class MusicService : MediaBrowserServiceCompat(),
         musicPlayerHandlerThread?.start()
         playerHandler = Handler(musicPlayerHandlerThread!!.looper)
 
+        code.name.monkey.retromusic.equalizer.EqManager.start(this)
         playbackManager = PlaybackManager(this)
         playbackManager.setCallbacks(this)
         setupMediaSession()
@@ -1437,6 +1438,7 @@ class MusicService : MediaBrowserServiceCompat(),
         playerHandler?.removeCallbacksAndMessages(null)
         musicPlayerHandlerThread?.quitSafely()
         playbackManager.release()
+        code.name.monkey.retromusic.equalizer.EqManager.stop()
         mediaSession?.release()
     }
 

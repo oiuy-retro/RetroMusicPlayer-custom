@@ -385,6 +385,10 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context),
         completion: (success: Boolean) -> Unit,
     ) {
         player.reset()
+        // Built-in equalizer: both players share one audio session (see RetroAudioSession).
+        RetroAudioSession.get(context).takeIf { it != 0 }?.let { id ->
+            runCatching { player.audioSessionId = id }
+        }
         try {
             if (path.startsWith("content://")) {
                 player.setDataSource(context, path.toUri())

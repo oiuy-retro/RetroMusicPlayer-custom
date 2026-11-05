@@ -11,6 +11,19 @@ shared as APK files. For changes in the app itself, see the
 
 ## [Unreleased]
 
+### Changed (branch `feature/built-in-eq`, versionCode 10723, 7.0.3-custom.6-beta.3)
+- Every slider now ticks whenever the number it shows changes, not on a coarser step. EQ bands
+  and loudness tick every 0.1 dB (they already showed one decimal), bass boost and virtualizer
+  every 1 %, player seek bars every displayed second (was every 5 s), and settings sliders at
+  their shown step. `SliderHaptics` remembers the last displayed value per slider so new
+  sliders follow the same rule. The 12 ms rate limit is unchanged.
+
+### Changed (branch `feature/built-in-eq`, versionCode 10722, 7.0.3-custom.6-beta.2)
+- Merged current main into the built-in equalizer branch, so the equalizer sits on top of the
+  shuffle work, slider vibration, typed number boxes and Resume after other media.
+- The equalizer's sliders (bands, bass boost, virtualizer and loudness gain) now give the same
+  short tick while dragging as every other slider: one per 0.5 dB or 1 %.
+
 ### Changed (branch `feature/resume-after-other-media`, versionCode 10721, 7.0.3-custom.4-beta.5)
 - Merged current main into this branch so Resume after other media sits on top of the shuffle
   work, slider vibration and typed number boxes. The Resume delay slider now uses the same
@@ -65,6 +78,12 @@ shared as APK files. For changes in the app itself, see the
   The upstream README is now in `docs/UPSTREAM_README.md`.
 - `.gitignore` entries for signing files (`retro.properties`, `*.jks`, `*.keystore`,
   `keystore.properties`, `public.properties`).
+- A **built-in equalizer** (Settings > Audio > Built-in equalizer): an on/off switch, the band
+  sliders the phone reports, the phone's presets plus your own saved presets, bass boost,
+  virtualizer (when the phone supports it) and a loudness gain slider. Optional separate profiles
+  per output device (phone speaker, wired/USB, each Bluetooth device) that switch automatically,
+  with a screen to rename, delete and copy profiles. "Open system equalizer" is still there.
+  versionCode 10711 on the `feature/built-in-eq` branch.
 - A **Shuffle** settings page (Settings > Shuffle) with a choice of shuffle modes: True random
   (the original shuffle and the default), Folder or album blocks, Genre blocks, Artist blocks,
   Spread out artists, Weighted (favorites, most played or least played) and Spotify-style.

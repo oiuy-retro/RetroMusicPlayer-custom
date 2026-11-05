@@ -168,6 +168,34 @@ with that raw id shows the combined entry as upstream did.
 `Artist.name` now prefers `displayName`. The unknown-artist and Various Artists display mapping
 still applies.
 
+## Built-in equalizer (`feature/built-in-eq`)
+
+| File | Change |
+|---|---|
+| `service/RetroAudioSession.kt` (new) | One audio session id from `AudioManager.generateAudioSessionId()`, shared by all local players. |
+| `service/RetroExoPlayer.kt`, `service/CrossFadePlayer.kt` | Put every ExoPlayer / MediaPlayer on the shared session (crossfade players before each `setDataSource`). |
+| `service/PlaybackManager.kt` | Doesn't send the "open audio effect session" broadcast to system EQ apps while the built-in EQ is on. |
+| `service/MusicService.kt` | Starts `EqManager` in `onCreate`, stops it (releases the effects) with the player. |
+| `equalizer/EqModels.kt`, `DeviceKeys.kt`, `EqStore.kt` (new) | Data models, device keys, profile selection and storage (Gson JSON in the default shared preferences, keys `builtin_eq_*`). Unit tested in `app/src/test`. |
+| `equalizer/EqManager.kt` (new) | Creates `Equalizer`, `BassBoost`, `Virtualizer`, `LoudnessEnhancer` on the shared session, applies the active profile, listens with `AudioDeviceCallback`. |
+| `fragments/settings/EqualizerFragment.kt` (new), `AudioSettings.kt`, `SettingsFragment.kt`, `res/navigation/settings_graph.xml`, `res/xml/pref_audio.xml`, `res/values/strings.xml` | The equalizer screen and its entry in Audio settings (English strings only). |
+| `app/proguard-rules.pro` | Keeps the Gson model classes. |
+
+How it works:
+
+- Effects attach to an audio session, not a player. Because all players share one session, the
+  effects keep working across track changes, crossfades and player re-creation.
+- Active output: Bluetooth first, then wired/USB, then the speaker (`DeviceKeys.pickActive`).
+- Profile keys: `speaker`, `wired`, `bt:addr:<MAC>` (needs Nearby devices on Android 12+),
+  `bt:name:<product name>` without it, or `bt:shared` when there's no name either.
+- With per-device profiles off, everything uses the default profile. A device seen for the first
+  time gets a copy of the default profile.
+- The Nearby devices permission is asked for only when per-device profiles are turned on.
+- Every equalizer slider (`EqualizerFragment.slider`) calls `SliderHaptics.onLabel` with the
+  number the user sees, so it ticks when that display changes: bands and loudness every 0.1 dB
+  (levels are still stored and applied in millibels), bass boost and virtualizer every 1 %.
+  They are plain `SeekBar`s built in code, not preferences, so they have no typed number box.
+
 ## Resume after other media
 
 - Preference `resume_after_focus_loss` (`PreferenceUtil.isResumeAfterFocusLossEnabled`), default
@@ -319,14 +347,16 @@ unchanged. If building the order fails for any reason, it also falls back to the
   to rescan the whole pool for every block, which froze on big libraries with 1-song blocks.
 - **Slider haptics**: one shared helper, `appthemehelper/.../util/SliderHaptics.kt`, adapted
   from HeliBoard-custom's `performSliderStepHaptic` (Apache-2.0, see `THIRD_PARTY_NOTICES.md`).
-  Per step: `performHapticFeedback` (`SEGMENT_FREQUENT_TICK` on API 34+, `TEXT_HANDLE_MOVE` on
-  8.1+, else `CLOCK_TICK`) with `FLAG_IGNORE_GLOBAL_SETTING`, plus a 5 ms vibration at amplitude
-  65, at most once per 12 ms. Like HeliBoard, it ignores the system touch-vibration switch and
-  uses the existing VIBRATE permission. Hooked into `ATESeekBarPreference` (all settings
-  sliders, via the value label), the player seek bars (`AbsPlayerControlsFragment`, Circle,
-  Gradient, Classic, Drive mode; one tick per 5 s), the player volume slider (`VolumeFragment`),
-  Circle's volume ring, the sleep timer, playback speed/pitch and the audio fade duration
-  dialog.
+  Rule: tick whenever the displayed number/label for that slider changes. `onLabel` /
+  `onDisplay` remember the last shown key per view; `onValue(value, stepSize)` buckets at the
+  display precision. Per tick: `performHapticFeedback` (`SEGMENT_FREQUENT_TICK` on API 34+,
+  `TEXT_HANDLE_MOVE` on 8.1+, else `CLOCK_TICK`) with `FLAG_IGNORE_GLOBAL_SETTING`, plus a 5 ms
+  vibration at amplitude 65, at most once per 12 ms. Like HeliBoard, it ignores the system
+  touch-vibration switch and uses the existing VIBRATE permission. Hooked into
+  `ATESeekBarPreference` (settings sliders, via the value label digits), the player seek bars
+  (`AbsPlayerControlsFragment`, Circle, Gradient, Classic, Drive mode; one tick per displayed
+  second), the player volume slider (`VolumeFragment`), Circle's volume ring, the sleep timer,
+  playback speed/pitch, the audio fade duration dialog, and the built-in equalizer sliders.
 - **Folder or album blocks**: the grouping is the album (`albumId`) or the song's parent folder
   (taken from the file path). A random song is picked, then songs from its group follow until the
   block limits are reached. "In order from the first pick" continues by track number (album) or

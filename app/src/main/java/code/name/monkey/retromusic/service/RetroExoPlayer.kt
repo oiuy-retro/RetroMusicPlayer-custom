@@ -44,6 +44,7 @@ class RetroExoPlayer(context: Context) : AudioManagerPlayback(context), Player.L
     init {
         player.setWakeMode(C.WAKE_MODE_LOCAL)
         player.volume = scaledVolume(requestedVolume)
+        useSharedSession()
     }
 
     /**
@@ -234,7 +235,14 @@ class RetroExoPlayer(context: Context) : AudioManagerPlayback(context), Player.L
             .build()
         player.setWakeMode(C.WAKE_MODE_LOCAL)
         player.volume = scaledVolume(requestedVolume)
+        useSharedSession()
         context.showToast(R.string.unplayable_file)
+    }
+
+    /** Built-in equalizer: every player uses the same audio session (see RetroAudioSession). */
+    private fun useSharedSession() {
+        val id = RetroAudioSession.get(context)
+        if (id != 0) runCatching { player.audioSessionId = id }
     }
 
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {

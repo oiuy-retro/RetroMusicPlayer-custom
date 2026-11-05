@@ -52,6 +52,11 @@ class AudioSettings : AbsSettingsFragment() {
             NavigationUtil.openEqualizer(requireActivity())
             true
         }
+        findPreference<Preference>("builtin_equalizer")?.setOnPreferenceClickListener {
+            androidx.navigation.fragment.NavHostFragment.findNavController(this)
+                .navigate(R.id.action_audioSettings_to_equalizerFragment)
+            true
+        }
         findPreference<Preference>("media_state_access")?.apply {
             setSummary(
                 if (MediaSessionWatcher.hasAccess(requireContext())) R.string.pref_summary_media_state_access_on
