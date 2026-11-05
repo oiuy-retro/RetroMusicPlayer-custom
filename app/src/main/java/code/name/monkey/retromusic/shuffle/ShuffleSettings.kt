@@ -17,6 +17,9 @@ object ShuffleSettings {
     const val GROUP_USE_TIME = "shuffle_group_use_time"
     const val GROUP_MIN_MINUTES = "shuffle_group_min_minutes"
     const val GROUP_MAX_MINUTES = "shuffle_group_max_minutes"
+    const val GROUP_USE_PERCENT = "shuffle_group_use_percent"
+    const val GROUP_MIN_PERCENT = "shuffle_group_min_percent"
+    const val GROUP_MAX_PERCENT = "shuffle_group_max_percent"
     const val GENRE_USE_SONGS = "shuffle_genre_use_songs"
     const val GENRE_USE_TIME = "shuffle_genre_use_time"
     const val GENRE_MIN_SONGS = "shuffle_genre_min"
@@ -60,7 +63,11 @@ object ShuffleSettings {
         mode = mode(p),
         grouping = if (p.getString(GROUPING, "album") == "folder") BlockGrouping.FOLDER else BlockGrouping.ALBUM,
         groupLimits = limits(p, GROUP_USE_SONGS, true, GROUP_MIN, GROUP_MAX, 2, 4,
-            GROUP_USE_TIME, false, GROUP_MIN_MINUTES, GROUP_MAX_MINUTES, 7, 15),
+            GROUP_USE_TIME, false, GROUP_MIN_MINUTES, GROUP_MAX_MINUTES, 7, 15).copy(
+            usePercent = p.getBoolean(GROUP_USE_PERCENT, false),
+            minPercent = p.getInt(GROUP_MIN_PERCENT, 25),
+            maxPercent = p.getInt(GROUP_MAX_PERCENT, 50),
+        ).normalized(),
         groupInOrder = p.getString(GROUP_ORDER, ORDER_IN_ORDER) == ORDER_IN_ORDER,
         artistLimits = limits(p, ARTIST_USE_SONGS, true, ARTIST_MIN, ARTIST_MAX, 2, 4,
             ARTIST_USE_TIME, false, ARTIST_MIN_MINUTES, ARTIST_MAX_MINUTES, 7, 15),
@@ -83,7 +90,7 @@ object ShuffleSettings {
         useTime = p.getBoolean(useTimeKey, useTimeDef),
         minMs = p.getInt(minMinKey, minMinDef) * 60_000L,
         maxMs = p.getInt(maxMinKey, maxMinDef) * 60_000L,
-    )
+    ).normalized()
 
     fun weightBy(p: SharedPreferences): String = p.getString(WEIGHT_BY, WEIGHT_FAVORITES) ?: WEIGHT_FAVORITES
     fun noRepeats(p: SharedPreferences) = p.getBoolean(NO_REPEATS, false)

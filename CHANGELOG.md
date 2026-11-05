@@ -11,6 +11,30 @@ shared as APK files. For changes in the app itself, see the
 
 ## [Unreleased]
 
+### Added (branch `feature/shuffle-percent-limit`, versionCode 10720, 7.0.3-custom.7-beta.4)
+- Shuffle settings: the number next to each slider is now a box you can type into. Press Done or
+  leave the box to apply it. It's kept inside the slider's range, still keeps min/max pairs in
+  order, and empty or invalid input goes back to the old value.
+
+### Fixed (branch `feature/shuffle-percent-limit`, versionCode 10719, 7.0.3-custom.7-beta.3)
+- The app could freeze while changing Folder/album block limits (time and percent). Block shuffle
+  was slow on big libraries with small blocks and ran on the main thread after every setting change.
+  Block shuffle is now fast on any library size and runs in the background.
+- Changing shuffle settings no longer reshuffles the queue on every slider move. The queue is
+  reshuffled once, when you leave the Shuffle settings page, and only if something changed.
+
+### Fixed (branch `feature/shuffle-percent-limit`, versionCode 10718, 7.0.3-custom.7-beta.2)
+- On the Shuffle settings page a Minimum slider could be set above its Maximum. Each min/max pair
+  (songs, minutes and percent) is now linked while dragging: moving the minimum above the maximum
+  raises the maximum to match, and moving the maximum below the minimum lowers the minimum.
+  Inverted values saved by earlier builds are put back in order when read.
+
+### Added (branch `feature/shuffle-percent-limit`, versionCode 10717)
+- Folder or album blocks have a third limit, **Limit by percent of album/folder** (off by default,
+  25 to 50 %). Each block gets a random percent in that range of its album's or folder's size,
+  rounded up to at least 1 song. With other limits on, the block ends at whichever is reached
+  first.
+
 ### Added
 - Documentation for the custom build: README, this changelog, `docs/BUILDING.md`,
   `docs/CUSTOM_CHANGES.md`, `docs/UPDATING_FROM_UPSTREAM.md` and `retro.properties.example`.

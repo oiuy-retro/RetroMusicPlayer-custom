@@ -539,26 +539,34 @@ class MusicService : MediaBrowserServiceCompat(),
         return duration
     }
 
-    private val reshuffleRunnable = Runnable { reshuffleRemaining() }
+    private var reshuffleJob: kotlinx.coroutines.Job? = null
 
-    /** Shuffle settings changed: re-order the songs after the current one (debounced for sliders). */
-    private fun scheduleReshuffleRemaining() {
-        val handler = uiThreadHandler ?: return
-        handler.removeCallbacks(reshuffleRunnable)
-        handler.postDelayed(reshuffleRunnable, 800)
-    }
-
-    private fun reshuffleRemaining() {
+    /**
+     * Runs the (possibly heavy) shuffle math off the main thread. The result is applied on the
+     * main thread only if the queue and position did not change meanwhile.
+     */
+    /** Called once when the user leaves Settings > Shuffle after changing something. */
+    fun reshuffleRemaining() {
         if (shuffleMode != SHUFFLE_MODE_SHUFFLE) return
         val pos = getPosition()
-        if (pos < 0 || pos >= playingQueue.size) return
-        val played = ArrayList(playingQueue.subList(0, pos))
-        val rest = ArrayList(playingQueue.subList(pos, playingQueue.size))
+        val queue = playingQueue
+        if (pos < 0 || pos >= queue.size) return
+        val played = ArrayList(queue.subList(0, pos))
+        val rest = ArrayList(queue.subList(pos, queue.size))
         if (rest.size < 2) return
-        makeShuffleList(this, rest, 0) // the current song stays first
-        playingQueue = ArrayList(played + rest)
-        position = pos
-        notifyChange(QUEUE_CHANGED)
+        val size = queue.size
+        val currentSong = queue[pos]
+        reshuffleJob?.cancel()
+        reshuffleJob = serviceScope.launch(Default) {
+            makeShuffleList(this@MusicService, rest, 0) // the current song stays first
+            withContext(Main) {
+                if (playingQueue !== queue || playingQueue.size != size || getPosition() != pos ||
+                    playingQueue[pos] != currentSong || shuffleMode != SHUFFLE_MODE_SHUFFLE) return@withContext
+                playingQueue = ArrayList(played + rest)
+                position = pos
+                notifyChange(QUEUE_CHANGED)
+            }
+        }
     }
 
     private fun getShuffleMode(): Int {
@@ -698,9 +706,6 @@ class MusicService : MediaBrowserServiceCompat(),
     override fun onSharedPreferenceChanged(
         sharedPreferences: SharedPreferences, key: String?,
     ) {
-        if (key != null && key.startsWith("shuffle_") && key != code.name.monkey.retromusic.shuffle.ShuffleSettings.RESET_HISTORY) {
-            scheduleReshuffleRemaining()
-        }
         when (key) {
             PLAYBACK_SPEED, PLAYBACK_PITCH -> {
                 updateMediaSessionPlaybackState()

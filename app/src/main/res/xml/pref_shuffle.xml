@@ -39,22 +39,22 @@
             android:layout="@layout/list_item_view_switch"
             android:summary="@string/pref_summary_shuffle_use_songs"
             android:title="@string/pref_title_shuffle_use_songs" />
-        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+        <code.name.monkey.retromusic.preferences.EditableSeekBarPreference
             android:defaultValue="2"
             android:dependency="shuffle_group_use_songs"
             android:key="shuffle_group_min"
-            android:layout="@layout/list_item_view_seekbar"
+            android:layout="@layout/list_item_view_seekbar_editable"
             android:max="50"
             app:min="1"
             app:ateKey_pref_unit=""
             android:title="@string/pref_title_shuffle_min_songs"
             android:summary="@string/pref_summary_shuffle_block_songs"
             app:showSeekBarValue="true" />
-        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+        <code.name.monkey.retromusic.preferences.EditableSeekBarPreference
             android:dependency="shuffle_group_use_songs"
             android:defaultValue="4"
             android:key="shuffle_group_max"
-            android:layout="@layout/list_item_view_seekbar"
+            android:layout="@layout/list_item_view_seekbar_editable"
             android:max="50"
             app:min="1"
             app:ateKey_pref_unit=""
@@ -66,26 +66,53 @@
             android:layout="@layout/list_item_view_switch"
             android:summary="@string/pref_summary_shuffle_use_time"
             android:title="@string/pref_title_shuffle_use_time" />
-        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+        <code.name.monkey.retromusic.preferences.EditableSeekBarPreference
             android:defaultValue="7"
             android:dependency="shuffle_group_use_time"
             android:key="shuffle_group_min_minutes"
-            android:layout="@layout/list_item_view_seekbar"
+            android:layout="@layout/list_item_view_seekbar_editable"
             android:max="240"
             app:min="1"
             app:ateKey_pref_unit=" min"
             android:title="@string/pref_title_shuffle_min_minutes"
             android:summary="@string/pref_summary_shuffle_genre_minutes"
             app:showSeekBarValue="true" />
-        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+        <code.name.monkey.retromusic.preferences.EditableSeekBarPreference
             android:defaultValue="15"
             android:dependency="shuffle_group_use_time"
             android:key="shuffle_group_max_minutes"
-            android:layout="@layout/list_item_view_seekbar"
+            android:layout="@layout/list_item_view_seekbar_editable"
             android:max="240"
             app:min="1"
             app:ateKey_pref_unit=" min"
             android:title="@string/pref_title_shuffle_max_minutes"
+            app:showSeekBarValue="true" />
+        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESwitchPreference
+            android:defaultValue="false"
+            android:key="shuffle_group_use_percent"
+            android:layout="@layout/list_item_view_switch"
+            android:summary="@string/pref_summary_shuffle_use_percent"
+            android:title="@string/pref_title_shuffle_use_percent" />
+        <code.name.monkey.retromusic.preferences.EditableSeekBarPreference
+            android:defaultValue="25"
+            android:dependency="shuffle_group_use_percent"
+            android:key="shuffle_group_min_percent"
+            android:layout="@layout/list_item_view_seekbar_editable"
+            android:max="100"
+            app:min="1"
+            app:ateKey_pref_unit="%"
+            android:title="@string/pref_title_shuffle_min_percent"
+            android:summary="@string/pref_summary_shuffle_percent"
+            app:showSeekBarValue="true" />
+        <code.name.monkey.retromusic.preferences.EditableSeekBarPreference
+            android:defaultValue="50"
+            android:dependency="shuffle_group_use_percent"
+            android:key="shuffle_group_max_percent"
+            android:layout="@layout/list_item_view_seekbar_editable"
+            android:max="100"
+            app:min="1"
+            app:ateKey_pref_unit="%"
+            android:title="@string/pref_title_shuffle_max_percent"
             app:showSeekBarValue="true" />
         <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEListPreference
             android:defaultValue="in_order"
@@ -110,22 +137,22 @@
             android:layout="@layout/list_item_view_switch"
             android:summary="@string/pref_summary_shuffle_use_songs"
             android:title="@string/pref_title_shuffle_use_songs" />
-        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+        <code.name.monkey.retromusic.preferences.EditableSeekBarPreference
             android:defaultValue="2"
             android:dependency="shuffle_genre_use_songs"
             android:key="shuffle_genre_min"
-            android:layout="@layout/list_item_view_seekbar"
+            android:layout="@layout/list_item_view_seekbar_editable"
             android:max="50"
             app:min="1"
             app:ateKey_pref_unit=""
             android:title="@string/pref_title_shuffle_min_songs"
             android:summary="@string/pref_summary_shuffle_block_songs"
             app:showSeekBarValue="true" />
-        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+        <code.name.monkey.retromusic.preferences.EditableSeekBarPreference
             android:defaultValue="4"
             android:dependency="shuffle_genre_use_songs"
             android:key="shuffle_genre_max"
-            android:layout="@layout/list_item_view_seekbar"
+            android:layout="@layout/list_item_view_seekbar_editable"
             android:max="50"
             app:min="1"
             app:ateKey_pref_unit=""
@@ -137,22 +164,22 @@
             android:layout="@layout/list_item_view_switch"
             android:summary="@string/pref_summary_shuffle_use_time"
             android:title="@string/pref_title_shuffle_use_time" />
-        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+        <code.name.monkey.retromusic.preferences.EditableSeekBarPreference
             android:defaultValue="7"
             android:dependency="shuffle_genre_use_time"
             android:key="shuffle_genre_min_minutes"
-            android:layout="@layout/list_item_view_seekbar"
+            android:layout="@layout/list_item_view_seekbar_editable"
             android:max="240"
             app:min="1"
             app:ateKey_pref_unit=" min"
             android:title="@string/pref_title_shuffle_min_minutes"
             android:summary="@string/pref_summary_shuffle_genre_minutes"
             app:showSeekBarValue="true" />
-        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+        <code.name.monkey.retromusic.preferences.EditableSeekBarPreference
             android:defaultValue="15"
             android:dependency="shuffle_genre_use_time"
             android:key="shuffle_genre_max_minutes"
-            android:layout="@layout/list_item_view_seekbar"
+            android:layout="@layout/list_item_view_seekbar_editable"
             android:max="240"
             app:min="1"
             app:ateKey_pref_unit=" min"
@@ -177,22 +204,22 @@
             android:layout="@layout/list_item_view_switch"
             android:summary="@string/pref_summary_shuffle_use_songs"
             android:title="@string/pref_title_shuffle_use_songs" />
-        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+        <code.name.monkey.retromusic.preferences.EditableSeekBarPreference
             android:defaultValue="2"
             android:dependency="shuffle_artist_use_songs"
             android:key="shuffle_artist_min"
-            android:layout="@layout/list_item_view_seekbar"
+            android:layout="@layout/list_item_view_seekbar_editable"
             android:max="50"
             app:min="1"
             app:ateKey_pref_unit=""
             android:title="@string/pref_title_shuffle_min_songs"
             android:summary="@string/pref_summary_shuffle_block_songs"
             app:showSeekBarValue="true" />
-        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+        <code.name.monkey.retromusic.preferences.EditableSeekBarPreference
             android:dependency="shuffle_artist_use_songs"
             android:defaultValue="4"
             android:key="shuffle_artist_max"
-            android:layout="@layout/list_item_view_seekbar"
+            android:layout="@layout/list_item_view_seekbar_editable"
             android:max="50"
             app:min="1"
             app:ateKey_pref_unit=""
@@ -204,22 +231,22 @@
             android:layout="@layout/list_item_view_switch"
             android:summary="@string/pref_summary_shuffle_use_time"
             android:title="@string/pref_title_shuffle_use_time" />
-        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+        <code.name.monkey.retromusic.preferences.EditableSeekBarPreference
             android:defaultValue="7"
             android:dependency="shuffle_artist_use_time"
             android:key="shuffle_artist_min_minutes"
-            android:layout="@layout/list_item_view_seekbar"
+            android:layout="@layout/list_item_view_seekbar_editable"
             android:max="240"
             app:min="1"
             app:ateKey_pref_unit=" min"
             android:title="@string/pref_title_shuffle_min_minutes"
             android:summary="@string/pref_summary_shuffle_genre_minutes"
             app:showSeekBarValue="true" />
-        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+        <code.name.monkey.retromusic.preferences.EditableSeekBarPreference
             android:defaultValue="15"
             android:dependency="shuffle_artist_use_time"
             android:key="shuffle_artist_max_minutes"
-            android:layout="@layout/list_item_view_seekbar"
+            android:layout="@layout/list_item_view_seekbar_editable"
             android:max="240"
             app:min="1"
             app:ateKey_pref_unit=" min"
@@ -242,10 +269,10 @@
         android:layout="@layout/preference_category_title"
         android:title="@string/shuffle_mode_spread_artists">
 
-        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+        <code.name.monkey.retromusic.preferences.EditableSeekBarPreference
             android:defaultValue="5"
             android:key="shuffle_artist_gap"
-            android:layout="@layout/list_item_view_seekbar"
+            android:layout="@layout/list_item_view_seekbar_editable"
             android:max="20"
             app:min="1"
             app:ateKey_pref_unit=""
@@ -269,10 +296,10 @@
             android:positiveButtonText="@null"
             android:title="@string/pref_title_shuffle_weight_by"
             app:useSimpleSummaryProvider="true" />
-        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+        <code.name.monkey.retromusic.preferences.EditableSeekBarPreference
             android:defaultValue="5"
             android:key="shuffle_weight_strength"
-            android:layout="@layout/list_item_view_seekbar"
+            android:layout="@layout/list_item_view_seekbar_editable"
             android:max="10"
             app:min="0"
             app:ateKey_pref_unit=""
@@ -291,10 +318,10 @@
             android:layout="@layout/list_item_view_switch"
             android:summary="@string/pref_summary_shuffle_no_repeats"
             android:title="@string/pref_title_shuffle_no_repeats" />
-        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+        <code.name.monkey.retromusic.preferences.EditableSeekBarPreference
             android:defaultValue="100"
             android:key="shuffle_no_repeats_percent"
-            android:layout="@layout/list_item_view_seekbar"
+            android:layout="@layout/list_item_view_seekbar_editable"
             android:max="100"
             app:min="50"
             app:ateKey_pref_unit="%"
@@ -319,10 +346,10 @@
             android:layout="@layout/list_item_view_switch"
             android:summary="@string/pref_summary_shuffle_reshuffle_on_loop"
             android:title="@string/pref_title_shuffle_reshuffle_on_loop" />
-        <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESeekBarPreference
+        <code.name.monkey.retromusic.preferences.EditableSeekBarPreference
             android:defaultValue="0"
             android:key="shuffle_min_length_seconds"
-            android:layout="@layout/list_item_view_seekbar"
+            android:layout="@layout/list_item_view_seekbar_editable"
             android:max="120"
             app:min="0"
             app:ateKey_pref_unit=" s"

@@ -226,6 +226,25 @@ unchanged. If building the order fails for any reason, it also falls back to the
   shuffled once, the start song is at position 0, and `position` is set before playback starts.
   The player's shuffle toggle still uses `setShuffleMode` (on: reshuffle around the current song;
   off: back to the original order).
+- **Percent limit (Folder/album blocks only)**: `shuffle_group_use_percent` (default off),
+  `shuffle_group_min_percent` / `shuffle_group_max_percent` (1 to 100, default 25 to 50). For each
+  block a random percent in the range is turned into a song count from the group's full size
+  (`ShuffleEngine.percentToSongs`, rounded up, at least 1) and combined with the song target by
+  taking the smaller. If every limit is off, the song limit is used.
+- **Linked min/max sliders**: `ShuffleSettingsFragment.linkMinMax` links every min/max pair (songs,
+  minutes, percent) with `updatesContinuously` on. Moving a minimum above its maximum sets the
+  maximum to the same value; moving a maximum below its minimum sets the minimum to the same value.
+  An inverted pair found when the page opens is repaired the same way. `BlockLimits.normalized()`,
+  applied in `ShuffleSettings.config`, swaps any inverted pair read from saved preferences.
+  A `syncing` flag guards the linked listeners against recursion.
+- **Reshuffle on leaving settings**: preference changes no longer reshuffle the queue.
+  `ShuffleSettingsFragment` snapshots all `shuffle_*` prefs in `onResume` and, in `onStop`, calls
+  `MusicService.reshuffleRemaining()` once if they differ. The reshuffle runs on
+  `Dispatchers.Default` and is applied on the main thread only if the queue, its size, the position
+  and the current song are unchanged.
+- **Block shuffle speed**: `ShuffleEngine.countBlocks` is O(n log n) (per-group `TreeSet` of
+  remaining positions, forward-only pointers, a 64-song look-ahead for a different group). It used
+  to rescan the whole pool for every block, which froze on big libraries with 1-song blocks.
 - **Slider haptics**: one shared helper, `appthemehelper/.../util/SliderHaptics.kt`, adapted
   from HeliBoard-custom's `performSliderStepHaptic` (Apache-2.0, see `THIRD_PARTY_NOTICES.md`).
   Per step: `performHapticFeedback` (`SEGMENT_FREQUENT_TICK` on API 34+, `TEXT_HANDLE_MOVE` on
@@ -274,6 +293,16 @@ Options for all modes:
 - **Skip songs shorter than**: songs shorter than N seconds (0 to 120, 0 = off) are left out of
   the shuffled queue. They come back when shuffle is turned off, because the unshuffled queue is
   kept separately as before.
+
+### Typed slider values
+
+- Shuffle sliders use `EditableSeekBarPreference` (layout `list_item_view_seekbar_editable`): an
+  integer box plus a unit label replaces the value label. The old label stays hidden so slider
+  haptics still tick while dragging, and dragging updates the box live.
+- Done or focus loss runs `SliderInput.parse` (digits only, clamped to the slider range, else the
+  current value) and saves through the change listener, so `linkMinMax` still pushes the partner.
+- `ShuffleSettingsFragment.onPause` commits any unconfirmed typed value before `onStop` compares
+  the snapshot, so it counts as a change for the reshuffle-on-leave.
 
 ### Limits
 
