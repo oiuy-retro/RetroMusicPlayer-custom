@@ -236,6 +236,15 @@ unchanged. If building the order fails for any reason, it also falls back to the
   maximum to the same value; moving a maximum below its minimum sets the minimum to the same value.
   An inverted pair found when the page opens is repaired the same way. `BlockLimits.normalized()`,
   applied in `ShuffleSettings.config`, swaps any inverted pair read from saved preferences.
+  A `syncing` flag guards the linked listeners against recursion.
+- **Reshuffle on leaving settings**: preference changes no longer reshuffle the queue.
+  `ShuffleSettingsFragment` snapshots all `shuffle_*` prefs in `onResume` and, in `onStop`, calls
+  `MusicService.reshuffleRemaining()` once if they differ. The reshuffle runs on
+  `Dispatchers.Default` and is applied on the main thread only if the queue, its size, the position
+  and the current song are unchanged.
+- **Block shuffle speed**: `ShuffleEngine.countBlocks` is O(n log n) (per-group `TreeSet` of
+  remaining positions, forward-only pointers, a 64-song look-ahead for a different group). It used
+  to rescan the whole pool for every block, which froze on big libraries with 1-song blocks.
 - **Slider haptics**: one shared helper, `appthemehelper/.../util/SliderHaptics.kt`, adapted
   from HeliBoard-custom's `performSliderStepHaptic` (Apache-2.0, see `THIRD_PARTY_NOTICES.md`).
   Per step: `performHapticFeedback` (`SEGMENT_FREQUENT_TICK` on API 34+, `TEXT_HANDLE_MOVE` on

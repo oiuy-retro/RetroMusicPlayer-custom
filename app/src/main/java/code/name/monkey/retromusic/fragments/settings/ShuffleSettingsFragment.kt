@@ -7,8 +7,10 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.preference.ListPreference
 import androidx.preference.Preference
+import androidx.preference.PreferenceManager
 import androidx.preference.SeekBarPreference
 import code.name.monkey.retromusic.R
+import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import code.name.monkey.retromusic.shuffle.ShuffleHistory
 import code.name.monkey.retromusic.shuffle.ShuffleSettings
 
@@ -23,8 +25,28 @@ class ShuffleSettingsFragment : AbsSettingsFragment() {
         "weighted" to "shuffle_cat_weighted",
     )
 
+    /** Shuffle settings when the page was opened; compared on leave. */
+    private var snapshot: Map<String, Any?>? = null
+
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         addPreferencesFromResource(R.xml.pref_shuffle)
+    }
+
+    private fun shuffleSettings(): Map<String, Any?> =
+        PreferenceManager.getDefaultSharedPreferences(requireContext()).all
+            .filterKeys { it.startsWith("shuffle_") && it != ShuffleSettings.RESET_HISTORY }
+
+    override fun onResume() {
+        super.onResume()
+        if (snapshot == null) snapshot = shuffleSettings()
+    }
+
+    /** Leaving the page: reshuffle the live queue once, only if a shuffle setting changed. */
+    override fun onStop() {
+        super.onStop()
+        val before = snapshot ?: return
+        snapshot = null
+        if (shuffleSettings() != before) MusicPlayerRemote.musicService?.reshuffleRemaining()
     }
 
     override fun invalidateSettings() {
@@ -71,19 +93,22 @@ class ShuffleSettingsFragment : AbsSettingsFragment() {
     private fun linkMinMax(minKey: String, maxKey: String) {
         val min: SeekBarPreference = findPreference(minKey) ?: return
         val max: SeekBarPreference = findPreference(maxKey) ?: return
-        // Apply the push while dragging, not only on release, so both sliders move together.
+        // Save while dragging so both sliders move together. Saving no longer reshuffles; the
+        // queue is reshuffled once when the page is left (see onStop).
         min.updatesContinuously = true
         max.updatesContinuously = true
         // Repair pairs saved inverted by older versions.
         if (min.value > max.value) max.value = min.value
+        // Setting .value does not call change listeners; the flag also guards against any loop.
+        var syncing = false
         min.setOnPreferenceChangeListener { _, v ->
             val n = v as Int
-            if (n > max.value) max.value = n
+            if (!syncing && n > max.value) { syncing = true; try { max.value = n } finally { syncing = false } }
             true
         }
         max.setOnPreferenceChangeListener { _, v ->
             val n = v as Int
-            if (n < min.value) min.value = n
+            if (!syncing && n < min.value) { syncing = true; try { min.value = n } finally { syncing = false } }
             true
         }
     }

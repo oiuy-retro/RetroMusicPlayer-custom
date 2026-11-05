@@ -80,6 +80,9 @@ data class ShuffleConfig(
 
 object ShuffleEngine {
 
+    /** How many songs block modes look past to find one from a different group. */
+    private const val LOOKAHEAD = 64
+
     /**
      * Returns a new order as indices into [tracks]. If [current] >= 0 that index is
      * always first. Every index appears exactly once unless a mode filters songs
@@ -165,53 +168,82 @@ object ShuffleEngine {
         inOrder: Boolean,
         random: Random,
     ): List<Int> {
-        val groups = LinkedHashMap<String, MutableList<Int>>()
-        for (i in pool) groups.getOrPut(key(tracks[i])) { mutableListOf() }.add(i)
-        groups.values.forEach { it.sortWith(naturalOrder) }
-        // Group sizes before any song is taken (the current song counts toward its group).
-        val groupSize = HashMap<String, Int>()
-        groups.forEach { (k, v) -> groupSize[k] = v.size }
-        if (current >= 0) groupSize.merge(key(tracks[current]), 1, Int::plus)
+        // Runs in O(n log n): every structure below is walked forward once or queried by TreeSet,
+        // so big libraries with tiny blocks (e.g. 1-song percent/time blocks) stay fast.
+        val groupAll = LinkedHashMap<String, MutableList<Int>>()
+        for (i in pool) groupAll.getOrPut(key(tracks[i])) { mutableListOf() }.add(i)
+        if (current >= 0) groupAll.getOrPut(key(tracks[current])) { mutableListOf() }.add(current)
+        groupAll.values.forEach { it.sortWith(naturalOrder) }
+        val posInGroup = HashMap<Int, Int>()
+        val left = HashMap<String, java.util.TreeSet<Int>>() // positions not yet taken, per group
+        groupAll.forEach { (g, list) ->
+            list.forEachIndexed { p, i -> posInGroup[i] = p }
+            left[g] = java.util.TreeSet<Int>().also { set -> list.indices.forEach { set.add(it) } }
+        }
+        val shuffledGroup = HashMap<String, MutableList<Int>>()
+        val shufPtr = HashMap<String, Int>()
+        if (!inOrder) groupAll.forEach { (g, list) -> shuffledGroup[g] = list.shuffled(random).toMutableList(); shufPtr[g] = 0 }
         val remaining = pool.toMutableList().also { it.shuffle(random) }
+        var ptr = 0
         val removed = HashSet<Int>()
-        val result = ArrayList<Int>(pool.size + 1)
+        val total = pool.size + (if (current >= 0) 1 else 0)
+        val result = ArrayList<Int>(total)
         var lastGroup: String? = null
 
-        fun take(i: Int) { result.add(i); removed.add(i); groups[key(tracks[i])]?.remove(i) }
+        fun take(i: Int) {
+            result.add(i); removed.add(i)
+            left[key(tracks[i])]?.remove(posInGroup[i] ?: -1)
+        }
 
         var firstPick = current
-        while (result.size < pool.size + (if (current >= 0) 1 else 0)) {
+        while (result.size < total) {
             val pick: Int = if (firstPick >= 0) {
                 firstPick.also { firstPick = -1 }
             } else {
-                remaining.removeAll { it in removed }
-                if (remaining.isEmpty()) break
-                remaining.firstOrNull { key(tracks[it]) != lastGroup } ?: remaining.first()
+                while (ptr < remaining.size && remaining[ptr] in removed) ptr++
+                if (ptr >= remaining.size) break
+                // Prefer a song from a different group; look ahead a bounded number of songs.
+                var chosen = remaining[ptr]
+                if (key(tracks[chosen]) == lastGroup) {
+                    var j = ptr + 1; var seen = 0
+                    while (j < remaining.size && seen < LOOKAHEAD) {
+                        val c = remaining[j]
+                        if (c !in removed) {
+                            if (key(tracks[c]) != lastGroup) { chosen = c; break }
+                            seen++
+                        }
+                        j++
+                    }
+                }
+                chosen
             }
             val g = key(tracks[pick])
-            val members = groups[g] ?: mutableListOf()
-            // Position of the pick in its group's natural order (before removing it).
-            val all = (members + pick).distinct().sortedWith(naturalOrder)
-            val pickPos = all.indexOf(pick)
+            val all = groupAll[g] ?: listOf(pick)
+            val pickPos = posInGroup[pick] ?: 0
+            val groupLeft = left[g] ?: java.util.TreeSet()
             take(pick)
             // If every limit is off, the song limit is used.
             val useSongs = limits.useSongs || (!limits.useTime && !limits.usePercent)
             var songTarget = if (useSongs) randomBetween(limits.minSongs, limits.maxSongs, random) else Int.MAX_VALUE
             if (limits.usePercent) {
                 val pct = randomBetween(limits.minPercent.coerceIn(1, 100), limits.maxPercent.coerceIn(1, 100), random)
-                songTarget = min(songTarget, percentToSongs(groupSize[g] ?: 1, pct))
+                songTarget = min(songTarget, percentToSongs(all.size, pct))
             }
             val timeTarget = if (limits.useTime) randomBetweenMs(limits.minMs, limits.maxMs, random) else Long.MAX_VALUE
             var count = 1
             var elapsed = tracks[pick].durationMs
-            val candidates: List<Int> = if (inOrder) {
-                all.drop(pickPos + 1) + all.take(pickPos)
-            } else {
-                members.shuffled(random)
-            }
-            for (next in candidates) {
-                // Add a song only while the block is below both targets: whichever is reached first ends it.
-                if (count >= songTarget || elapsed >= timeTarget) break
+            // Add a song only while the block is below both targets: whichever is reached first ends it.
+            while (count < songTarget && elapsed < timeTarget && groupLeft.isNotEmpty()) {
+                val next: Int = if (inOrder) {
+                    all[groupLeft.ceiling(pickPos + 1) ?: groupLeft.first()]
+                } else {
+                    val list = shuffledGroup[g] ?: break
+                    var k = shufPtr[g] ?: 0
+                    while (k < list.size && list[k] in removed) k++
+                    shufPtr[g] = k
+                    if (k >= list.size) break
+                    list[k]
+                }
                 take(next)
                 count++
                 elapsed += tracks[next].durationMs

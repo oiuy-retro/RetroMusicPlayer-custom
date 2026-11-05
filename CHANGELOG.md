@@ -11,6 +11,13 @@ shared as APK files. For changes in the app itself, see the
 
 ## [Unreleased]
 
+### Fixed (branch `feature/shuffle-percent-limit`, versionCode 10719, 7.0.3-custom.7-beta.3)
+- The app could freeze while changing Folder/album block limits (time and percent). Block shuffle
+  was slow on big libraries with small blocks and ran on the main thread after every setting change.
+  Block shuffle is now fast on any library size and runs in the background.
+- Changing shuffle settings no longer reshuffles the queue on every slider move. The queue is
+  reshuffled once, when you leave the Shuffle settings page, and only if something changed.
+
 ### Fixed (branch `feature/shuffle-percent-limit`, versionCode 10718, 7.0.3-custom.7-beta.2)
 - On the Shuffle settings page a Minimum slider could be set above its Maximum. Each min/max pair
   (songs, minutes and percent) is now linked while dragging: moving the minimum above the maximum
