@@ -11,6 +11,12 @@ shared as APK files. For changes in the app itself, see the
 
 ## [Unreleased]
 
+### Fixed (branch `fix/true-random-shuffle`, versionCode 10724, 7.0.3-custom.8-beta.1)
+- The shuffle button on the Albums and Artists tabs now shuffles all songs with the chosen shuffle
+  mode, also with True random. Before, with True random it kept upstream's behavior: albums (or
+  artists) in random order, but each one's songs played in order with shuffle off, so it sounded
+  like a few random songs and then albums in order.
+
 ### Changed (branch `feature/resume-after-other-media`, versionCode 10721, 7.0.3-custom.4-beta.5)
 - Merged current main into this branch so Resume after other media sits on top of the shuffle
   work, slider vibration and typed number boxes. The Resume delay slider now uses the same
