@@ -17,16 +17,20 @@ object PathValidation {
         return null
     }
 
+    /**
+     * Strip an absolute filesystem root using **ordinal-exact** prefix and a path boundary.
+     * `root` must match exactly (case-sensitive) and be followed by `/` (not a longer name prefix).
+     * Returns the preserved relative path, or null if not under that root.
+     */
     fun stripRootPrefix(absolutePath: String, rootAbsolute: String): String? {
+        if (rootAbsolute.isBlank()) return null
         val file = normalizeSeparators(absolutePath)
         val root = normalizeSeparators(rootAbsolute).trimEnd('/')
-        if (!file.startsWith(root, ignoreCase = false)) {
-            // Try ordinal exact first; also allow case-insensitive FS match for Android roots.
-            if (!file.startsWith(root, ignoreCase = true)) return null
-            val stripped = file.substring(root.length).trimStart('/')
-            return stripped.takeIf { validateRelative(it) == null }
-        }
-        val stripped = file.substring(root.length).trimStart('/')
+        if (root.isEmpty()) return null
+        if (file == root) return null // directory itself, not a file under it
+        val prefix = "$root/"
+        if (!file.startsWith(prefix)) return null // ordinal exact + boundary
+        val stripped = file.substring(prefix.length)
         return stripped.takeIf { validateRelative(it) == null }
     }
 }

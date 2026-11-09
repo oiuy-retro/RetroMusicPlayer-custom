@@ -11,25 +11,15 @@ class LoudnessRepository(private val dao: LoudnessDao) {
 
     suspend fun count(): Int = withContext(Dispatchers.IO) { dao.count() }
 
-    suspend fun lookup(rootId: String, relativePath: String): LoudnessEntity? =
+    /** Exact primary match only: ordinal rootId + exact relativePath. No suffix/basename fallback. */
+    suspend fun lookupExact(rootId: String, relativePath: String): LoudnessEntity? =
         withContext(Dispatchers.IO) { dao.get(rootId, relativePath) }
 
-    /** Exact primary match: try configured rootId + relativePath; also scan same relativePath under other roots. */
-    suspend fun lookupExact(rootId: String, relativePath: String): LoudnessEntity? =
+    suspend fun hasMeasured(rootId: String, relativePath: String): Boolean =
         withContext(Dispatchers.IO) {
-            dao.get(rootId, relativePath) ?: dao.getByRelativePath(relativePath).singleOrNull()
+            val e = dao.get(rootId, relativePath) ?: return@withContext false
+            e.measuredLufs != null && e.measuredLufs.isFinite()
         }
-
-    /** Exact relativePath suffix match against absolute song path; ambiguous matches return null. */
-    suspend fun findBySongPath(songPath: String): LoudnessEntity? = withContext(Dispatchers.IO) {
-        val norm = PathValidation.normalizeSeparators(songPath)
-        val all = dao.getAll()
-        val hits = all.filter { e ->
-            val rel = e.relativePath
-            norm == rel || norm.endsWith("/$rel")
-        }
-        hits.singleOrNull()
-    }
 
     suspend fun importDocument(document: LoudnessDocument): Int = withContext(Dispatchers.IO) {
         val now = System.currentTimeMillis()
@@ -66,7 +56,7 @@ class LoudnessRepository(private val dao: LoudnessDao) {
                 rootId = rootId,
                 relativePath = relativePath,
                 trackGainDb = trackGainDb,
-                albumGainDb = existing?.albumGainDb,
+                albumGainDb = existing?.albumGainDb, // preserve imported album gain; no album scan
                 measuredLufs = measuredLufs,
                 truePeakDbtp = truePeakDbtp,
                 sourceItemId = existing?.sourceItemId,
@@ -94,7 +84,6 @@ class LoudnessRepository(private val dao: LoudnessDao) {
         val all = dao.getAll().let { list ->
             if (rootIdFilter == null) list else list.filter { it.rootId == rootIdFilter }
         }
-        // Collision gate jf-ck-v1
         val groups = all.groupBy { CollisionKey.build(it.rootId, it.relativePath) }
         val kept = all.filter { (groups[CollisionKey.build(it.rootId, it.relativePath)]?.size ?: 0) == 1 }
         val collisions = all.size - kept.size
@@ -123,10 +112,18 @@ class LoudnessRepository(private val dao: LoudnessDao) {
                 },
             )
         }
-        val kind = kept.firstOrNull()?.documentKind ?: LoudnessSchema.KIND_ANDROID
-        val gainOrigin = kept.firstOrNull()?.documentGainOrigin
-            ?: if (kind == LoudnessSchema.KIND_ANDROID) LoudnessSchema.GAIN_ORIGIN_MEASURED
-            else LoudnessSchema.GAIN_ORIGIN_JELLYFIN
+        // Prefer android producer shape when any measured rows exist; else preserve imported kind.
+        val measuredAny = kept.any { it.documentKind == LoudnessSchema.KIND_ANDROID || it.measuredLufs != null }
+        val kind = when {
+            measuredAny && kept.all { it.documentKind == LoudnessSchema.KIND_ANDROID || it.measuredLufs != null } ->
+                LoudnessSchema.KIND_ANDROID
+            kept.firstOrNull()?.documentKind != null -> kept.first().documentKind!!
+            else -> LoudnessSchema.KIND_ANDROID
+        }
+        val gainOrigin = when (kind) {
+            LoudnessSchema.KIND_ANDROID -> LoudnessSchema.GAIN_ORIGIN_MEASURED
+            else -> kept.firstOrNull()?.documentGainOrigin ?: LoudnessSchema.GAIN_ORIGIN_JELLYFIN
+        }
         LoudnessDocument(
             format = LoudnessSchema.FORMAT,
             schemaVersion = LoudnessSchema.SCHEMA_VERSION,
@@ -137,8 +134,10 @@ class LoudnessRepository(private val dao: LoudnessDao) {
                 kind = kind,
                 gainOrigin = gainOrigin,
                 gainUnits = LoudnessSchema.GAIN_UNITS_DB,
+                // Android uses referenceLufs only; never emit Jellyfin's lufsDerivedReferenceLufs from this producer.
+                // Jellyfin re-export omits both unless we later persist the imported informational fields.
                 referenceLufs = if (kind == LoudnessSchema.KIND_ANDROID) LoudnessSchema.REFERENCE_LUFS else null,
-                lufsDerivedReferenceLufs = if (kind == LoudnessSchema.KIND_JELLYFIN) LoudnessSchema.REFERENCE_LUFS else null,
+                lufsDerivedReferenceLufs = null,
                 analyzer = if (kind == LoudnessSchema.KIND_ANDROID) LoudnessSchema.ANALYZER_LIBEBUR128 else null,
                 analyzerVersion = if (kind == LoudnessSchema.KIND_ANDROID) LoudnessSchema.ANALYZER_VERSION else null,
                 producer = if (kind == LoudnessSchema.KIND_ANDROID) LoudnessSchema.PRODUCER_NAME else null,
@@ -147,7 +146,8 @@ class LoudnessRepository(private val dao: LoudnessDao) {
             roots = roots.ifEmpty { listOf(RootInfo("music")) },
             tracks = tracks,
             coverage = CoverageInfo(
-                partial = false,
+                // partial only for explicitly filtered / incomplete producer runs
+                partial = rootIdFilter != null,
                 itemsSeen = all.size,
                 entriesExported = tracks.size,
                 missingTrackGain = missingTrack,

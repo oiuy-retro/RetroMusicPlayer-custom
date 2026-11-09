@@ -1,7 +1,6 @@
 package code.name.monkey.retromusic.loudness
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -16,11 +15,25 @@ class PathValidationTest {
     }
 
     @Test
-    fun stripRoot() {
+    fun stripRootBoundaryAware() {
         assertEquals(
             "A/b.flac",
             PathValidation.stripRootPrefix("/storage/emulated/0/Music/A/b.flac", "/storage/emulated/0/Music")
         )
         assertNull(PathValidation.stripRootPrefix("/other/A/b.flac", "/storage/emulated/0/Music"))
+        // Must not treat MusicBackup as under Music
+        assertNull(
+            PathValidation.stripRootPrefix(
+                "/storage/emulated/0/MusicBackup/a.flac",
+                "/storage/emulated/0/Music"
+            )
+        )
+        // Case-sensitive ordinal match
+        assertNull(
+            PathValidation.stripRootPrefix(
+                "/storage/emulated/0/music/a.flac",
+                "/storage/emulated/0/Music"
+            )
+        )
     }
 }

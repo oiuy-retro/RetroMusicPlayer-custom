@@ -3,20 +3,26 @@ package code.name.monkey.retromusic.loudness
 import kotlin.math.pow
 
 /**
- * Playback gain math. This is loudness *normalization* (whole-track gain), not
- * dynamic-range compression.
+ * Playback gain math. Whole-track loudness *normalization*, not dynamic-range compression.
+ *
+ * Positive boost is **disabled**: EQ, crossfade peaks, and ducking can add energy beyond
+ * file true-peak headroom, and this build has no proven brickwall limiter on the output path.
+ * Only attenuation (applied dB <= 0) is applied.
  */
 object LoudnessGainMath {
     const val DEFAULT_STRENGTH_PERCENT = 100
-    const val DEFAULT_MAX_BOOST_DB = 6.0
+    const val DEFAULT_MAX_BOOST_DB = 0.0
     const val DEFAULT_MAX_CUT_DB = 20.0
+
+    /** Positive boost is never considered safe in this build. */
+    const val POSITIVE_BOOST_ALLOWED = false
 
     fun gainFromLufs(measuredLufs: Double, referenceLufs: Double = LoudnessSchema.REFERENCE_LUFS): Double =
         referenceLufs - measuredLufs
 
     /**
-     * @return applied dB after strength and max boost/cut. Never fabricates LUFS from ambiguous gains.
-     * Positive boost is forced to 0 when [truePeakDbtp] is null (attenuation-only safety).
+     * @return applied dB after strength and max cut. Positive values are forced to 0.
+     * Never fabricates LUFS from ambiguous gains.
      */
     fun appliedGainDb(
         trackGainDb: Double?,
@@ -25,7 +31,7 @@ object LoudnessGainMath {
         strengthPercent: Int,
         maxBoostDb: Double,
         maxCutDb: Double,
-        truePeakDbtp: Double?,
+        truePeakDbtp: Double? = null,
         allowBoostWithoutPeak: Boolean = false,
     ): Double {
         val raw = when {
@@ -37,28 +43,22 @@ object LoudnessGainMath {
         if (!raw.isFinite()) return 0.0
         val strength = (strengthPercent.coerceIn(0, 100)) / 100.0
         var applied = raw * strength
-        if (applied > 0.0 && truePeakDbtp == null && !allowBoostWithoutPeak) {
+        // Conservative: never boost. truePeak alone is insufficient with EQ/crossfade.
+        if (applied > 0.0) {
             applied = 0.0
         }
-        if (applied > 0.0 && truePeakDbtp != null) {
-            // Headroom: do not boost past true peak reaching 0 dBTP (approx).
-            val headroom = (-truePeakDbtp).coerceAtLeast(0.0)
-            applied = minOf(applied, headroom)
-        }
-        applied = applied.coerceIn(-maxCutDb.coerceAtLeast(0.0), maxBoostDb.coerceAtLeast(0.0))
+        applied = applied.coerceIn(-maxCutDb.coerceAtLeast(0.0), 0.0)
+        // maxBoostDb ignored while POSITIVE_BOOST_ALLOWED is false
         return applied
     }
 
     fun dbToLinear(db: Double): Double = 10.0.pow(db / 20.0)
 
-    /** Split into MediaPlayer-safe attenuation (0..1) and LoudnessEnhancer boost millibels. */
+    /**
+     * Attenuation-only split: linear in 0..1, boost millibels always 0.
+     */
     fun splitForAndroidVolume(linear: Double): Pair<Float, Int> {
         if (!linear.isFinite() || linear <= 0.0) return 0f to 0
-        return if (linear <= 1.0) {
-            linear.toFloat() to 0
-        } else {
-            val boostDb = 20.0 * kotlin.math.log10(linear)
-            1f to (boostDb * 100.0).toInt().coerceAtLeast(0)
-        }
+        return linear.coerceAtMost(1.0).toFloat() to 0
     }
 }

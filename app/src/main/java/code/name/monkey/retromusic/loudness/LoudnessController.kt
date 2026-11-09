@@ -1,6 +1,7 @@
 package code.name.monkey.retromusic.loudness
 
-import android.media.audiofx.LoudnessEnhancer
+import android.os.Handler
+import android.os.Looper
 import code.name.monkey.retromusic.db.LoudnessEntity
 import code.name.monkey.retromusic.model.Song
 import code.name.monkey.retromusic.util.PreferenceUtil
@@ -12,8 +13,9 @@ import kotlin.math.abs
 
 /**
  * Applies per-track loudness normalization on top of player volume / fade / duck.
- * Attenuation goes through the volume multiplier; boost uses [LoudnessEnhancer].
- * Missing peak => no positive boost. Not dynamic-range compression.
+ * Attenuation-only (no LoudnessEnhancer): EQ/crossfade can exceed file true-peak
+ * headroom and this build has no proven output limiter.
+ * Exact match only: configured filesystem root + exact relativePath.
  */
 class LoudnessController(
     private val repository: LoudnessRepository,
@@ -21,44 +23,29 @@ class LoudnessController(
 ) {
     @Volatile var attenuationLinear: Float = 1f
         private set
-    @Volatile var boostMillibels: Int = 0
-        private set
 
-    private var enhancer: LoudnessEnhancer? = null
     private var job: Job? = null
-    private var targetAttenuation = 1f
-    private var targetBoostMb = 0
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var rampRunnable: Runnable? = null
 
     fun onAudioSession(sessionId: Int) {
-        releaseEnhancer()
-        if (sessionId != 0) {
-            enhancer = runCatching { LoudnessEnhancer(sessionId) }.getOrNull()?.also {
-                it.enabled = boostMillibels > 0
-                if (boostMillibels > 0) it.setTargetGain(boostMillibels)
-            }
-        }
+        // Intentionally no LoudnessEnhancer (avoids EQ conflict; boost disabled).
     }
 
     fun releaseEnhancer() {
-        runCatching { enhancer?.release() }
-        enhancer = null
+        // No-op retained for MusicService call sites.
     }
 
-    fun clear() {
+    fun clear(onApplied: (() -> Unit)? = null) {
         job?.cancel()
         attenuationLinear = 1f
-        boostMillibels = 0
-        targetAttenuation = 1f
-        targetBoostMb = 0
-        LoudnessPlaybackState.attenuationLinear = 1f
-        applyEnhancer(0)
+        rampTo(1f, onApplied)
     }
 
     fun refreshForSong(song: Song?, onApplied: () -> Unit) {
         job?.cancel()
         if (song == null || !PreferenceUtil.loudnessEnabled) {
-            clear()
-            onApplied()
+            clear(onApplied)
             return
         }
         if (!LoudnessSchedule.isActiveNow(
@@ -67,35 +54,28 @@ class LoudnessController(
                 PreferenceUtil.loudnessScheduleEnd,
             )
         ) {
-            clear()
-            onApplied()
+            clear(onApplied)
             return
         }
         val rootId = PreferenceUtil.loudnessRootId
-        val rootUri = PreferenceUtil.loudnessRootUri
+        val rootPath = PreferenceUtil.loudnessRootUri
+        if (rootId.isBlank() || rootPath.isBlank()) {
+            clear(onApplied)
+            return
+        }
         job = scope.launch(Dispatchers.IO) {
-            val relative = relativeForSong(song, rootUri)
-            val entity = when {
-                relative != null -> repository.lookupExact(rootId, relative)
-                else -> repository.findBySongPath(song.data)
-            }
+            val relative = relativeForSong(song, rootPath)
+            val entity = if (relative != null) repository.lookupExact(rootId, relative) else null
             val appliedDb = computeAppliedDb(entity)
-            val linear = LoudnessGainMath.dbToLinear(appliedDb)
-            val (att, boost) = LoudnessGainMath.splitForAndroidVolume(linear)
-            targetAttenuation = att
-            targetBoostMb = boost
-            attenuationLinear = att
-            boostMillibels = boost
-            LoudnessPlaybackState.attenuationLinear = att
+            val att = LoudnessGainMath.dbToLinear(appliedDb).coerceIn(0.0, 1.0).toFloat()
             launch(Dispatchers.Main) {
-                applyEnhancer(boost)
-                onApplied()
+                attenuationLinear = att
+                rampTo(att, onApplied)
             }
         }
     }
 
     fun reevaluateSchedule(onApplied: () -> Unit) {
-        // Caller should pass current song again; this just clears if schedule inactive.
         if (!PreferenceUtil.loudnessEnabled ||
             !LoudnessSchedule.isActiveNow(
                 PreferenceUtil.loudnessScheduleEnabled,
@@ -103,22 +83,41 @@ class LoudnessController(
                 PreferenceUtil.loudnessScheduleEnd,
             )
         ) {
-            clear()
-            onApplied()
+            clear(onApplied)
         }
     }
 
-    private fun applyEnhancer(mb: Int) {
-        val e = enhancer ?: return
-        runCatching {
-            if (mb > 0) {
-                e.setTargetGain(mb)
-                e.enabled = true
-            } else {
-                e.setTargetGain(0)
-                e.enabled = false
+    private fun cancelRamp() {
+        rampRunnable?.let { mainHandler.removeCallbacks(it) }
+        rampRunnable = null
+    }
+
+    /** Short multi-step ramp so large attenuation jumps are less clicky. */
+    private fun rampTo(target: Float, onStep: (() -> Unit)? = null) {
+        cancelRamp()
+        val start = LoudnessPlaybackState.attenuationLinear
+        if (abs(start - target) < 0.001f) {
+            LoudnessPlaybackState.attenuationLinear = target
+            onStep?.invoke()
+            return
+        }
+        val steps = 8
+        var i = 0
+        val r = object : Runnable {
+            override fun run() {
+                i++
+                val t = (i.toFloat() / steps).coerceAtMost(1f)
+                LoudnessPlaybackState.attenuationLinear = start + (target - start) * t
+                onStep?.invoke()
+                if (i < steps) {
+                    mainHandler.postDelayed(this, 12L)
+                } else {
+                    rampRunnable = null
+                }
             }
         }
+        rampRunnable = r
+        mainHandler.post(r)
     }
 
     private fun computeAppliedDb(entity: LoudnessEntity?): Double {
@@ -128,26 +127,18 @@ class LoudnessController(
             albumGainDb = entity.albumGainDb,
             preferAlbum = PreferenceUtil.loudnessPreferAlbum,
             strengthPercent = PreferenceUtil.loudnessStrength,
-            maxBoostDb = PreferenceUtil.loudnessMaxBoostDb.toDouble(),
+            maxBoostDb = 0.0,
             maxCutDb = PreferenceUtil.loudnessMaxCutDb.toDouble(),
             truePeakDbtp = entity.truePeakDbtp,
-            allowBoostWithoutPeak = false,
         )
     }
 
     companion object {
-        fun relativeForSong(song: Song, rootUriOrPath: String): String? {
-            if (rootUriOrPath.isBlank()) {
-                // Fall back: use path after last common music folder heuristic — require mapped root.
-                return null
-            }
-            // File path songs
+        fun relativeForSong(song: Song, rootAbsolutePath: String): String? {
+            if (rootAbsolutePath.isBlank()) return null
             val data = song.data
-            if (data.startsWith('/') || data.contains("://").not() && data.contains('/')) {
-                return PathValidation.stripRootPrefix(data, rootUriOrPath)
-            }
-            // For content URIs, relative path must come from tree mapping stored separately.
-            return null
+            if (data.isBlank() || data.startsWith("content:")) return null
+            return PathValidation.stripRootPrefix(data, rootAbsolutePath)
         }
     }
 }

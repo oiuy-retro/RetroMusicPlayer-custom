@@ -899,7 +899,7 @@ object PreferenceUtil {
         set(value) = sharedPreferences.edit { putInt(LOUDNESS_STRENGTH, value.coerceIn(0, 100)) }
 
     var loudnessMaxBoostDb: Int
-        get() = sharedPreferences.getInt(LOUDNESS_MAX_BOOST_DB, 6).coerceIn(0, 12)
+        get() = sharedPreferences.getInt(LOUDNESS_MAX_BOOST_DB, 0).coerceIn(0, 12)
         set(value) = sharedPreferences.edit { putInt(LOUDNESS_MAX_BOOST_DB, value.coerceIn(0, 12)) }
 
     var loudnessMaxCutDb: Int

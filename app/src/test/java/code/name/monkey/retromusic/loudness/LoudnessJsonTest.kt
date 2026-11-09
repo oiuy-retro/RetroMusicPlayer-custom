@@ -94,6 +94,40 @@ class LoudnessJsonTest {
         assertEquals(LoudnessSchema.KIND_ANDROID, parsed.document.source.kind)
     }
 
+
+    @Test
+    fun androidExportOmitsJellyfinLufsDerived() {
+        val doc = LoudnessDocument(
+            format = LoudnessSchema.FORMAT,
+            schemaVersion = 1,
+            exportedAt = "2026-11-08T00:00:00Z",
+            collisionKeyAlgorithm = LoudnessSchema.COLLISION_ALGORITHM,
+            collisionKey = LoudnessJson.androidCollisionKeyInfo(),
+            source = DocumentSource(
+                kind = LoudnessSchema.KIND_ANDROID,
+                gainOrigin = LoudnessSchema.GAIN_ORIGIN_MEASURED,
+                gainUnits = LoudnessSchema.GAIN_UNITS_DB,
+                referenceLufs = LoudnessSchema.REFERENCE_LUFS,
+                analyzer = LoudnessSchema.ANALYZER_LIBEBUR128,
+                analyzerVersion = LoudnessSchema.ANALYZER_VERSION,
+                producer = LoudnessSchema.PRODUCER_NAME,
+                producerVersion = "test",
+            ),
+            roots = listOf(RootInfo("music")),
+            tracks = listOf(
+                TrackEntry(rootId = "music", relativePath = "A/b.flac", trackGainDb = -2.0, albumGainDb = -3.0)
+            ),
+            coverage = CoverageInfo(entriesExported = 1, itemsSeen = 1),
+        )
+        val json = LoudnessJson.write(doc)
+        assertTrue(json.contains("\"referenceLufs\""))
+        assertTrue(!json.contains("lufsDerivedReferenceLufs"))
+        val parsed = LoudnessJson.parse(json.reader()) as ParseResult.Ok
+        assertEquals(-3.0, parsed.document.tracks[0].albumGainDb!!, 0.0)
+        assertEquals(LoudnessSchema.REFERENCE_LUFS, parsed.document.source.referenceLufs!!, 0.0)
+        assertNull(parsed.document.source.lufsDerivedReferenceLufs)
+    }
+
     private fun readFixture(path: String): String =
         LoudnessJsonTest::class.java.classLoader!!.getResourceAsStream(path)!!.reader().readText()
 }

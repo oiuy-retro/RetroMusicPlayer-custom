@@ -11,6 +11,9 @@ shared as APK files. For changes in the app itself, see the
 
 ## [Unreleased]
 
+### Changed (branch `feature/loudness-normalization`, versionCode 10726)
+- Loudness self-audit: exact rootId+relativePath match only (no path-suffix fallback); attenuation-only playback (no LoudnessEnhancer boost); MediaCodec scanner hardened (PCM float/16, format-change, cancel, incremental skip); Android producer fields documented as additive RESERVED (not frozen).
+
 ### Added (branch `feature/loudness-normalization`, versionCode 10725)
 - Loudness normalization: JSON import/export, on-phone EBU R128 scan, strength/schedule controls.
 

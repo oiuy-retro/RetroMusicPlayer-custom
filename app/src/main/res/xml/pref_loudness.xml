@@ -23,8 +23,9 @@
         app:updatesContinuously="true" />
 
     <code.name.monkey.retromusic.preferences.EditableSeekBarPreference
-        android:defaultValue="6"
+        android:defaultValue="0"
         android:dependency="loudness_enabled"
+        android:enabled="false"
         android:key="loudness_max_boost_db"
         android:layout="@layout/list_item_view_seekbar_editable"
         android:max="12"
