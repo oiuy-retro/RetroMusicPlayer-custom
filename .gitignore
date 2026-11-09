@@ -48,3 +48,8 @@ retro.properties
 *.keystore
 keystore.properties
 public.properties
+
+# Native / NDK local outputs (sources under third_party/ and app/src/main/cpp stay tracked)
+app/.cxx/
+app/src/main/jniLibs/
+app/build/tmp-native/

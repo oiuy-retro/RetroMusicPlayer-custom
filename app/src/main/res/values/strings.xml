@@ -608,4 +608,37 @@
     <string name="pref_title_shuffle_skip_counts">Skipped songs count as played</string>
     <string name="pref_summary_shuffle_skip_counts">For No repeats. Otherwise a song counts once over half of it has played.</string>
     <string name="shuffle_settings_apply_note">Changes apply the next time you turn shuffle on or start a shuffled queue</string>
+
+    <string name="action_loudness">Loudness</string>
+    <string name="pref_header_loudness">Loudness normalization</string>
+    <string name="pref_title_loudness_enabled">Enable loudness normalization</string>
+    <string name="pref_summary_loudness_enabled">Applies stored per-track gains during playback. Off by default. This is whole-track gain, not dynamic-range compression. Positive boosts need true-peak data; otherwise only attenuation is applied.</string>
+    <string name="pref_title_loudness_strength">Strength</string>
+    <string name="pref_summary_loudness_strength">How much of each track gain to apply (0-100 percent).</string>
+    <string name="pref_title_loudness_max_boost">Maximum boost</string>
+    <string name="pref_summary_loudness_max_boost">Caps positive gain. Boost also needs true-peak metadata.</string>
+    <string name="pref_title_loudness_max_cut">Maximum cut</string>
+    <string name="pref_summary_loudness_max_cut">Caps how far quiet tracks are raised toward the target by limiting attenuation magnitude.</string>
+    <string name="pref_title_loudness_prefer_album">Prefer album gain</string>
+    <string name="pref_summary_loudness_prefer_album">Use album gain when present, otherwise track gain.</string>
+    <string name="pref_title_loudness_schedule">Limit to times of day</string>
+    <string name="pref_summary_loudness_schedule">Optional daily window in device local time. Overnight windows are supported. Start and end must differ.</string>
+    <string name="pref_title_loudness_schedule_start">Starts at</string>
+    <string name="pref_title_loudness_schedule_end">Ends at</string>
+    <string name="pref_title_loudness_map_root">Music root folder</string>
+    <string name="pref_summary_loudness_map_root">Pick the Android folder that matches the export root relative tree (1:1).</string>
+    <string name="pref_title_loudness_import">Import loudness file</string>
+    <string name="pref_summary_loudness_import">Import a portable JSON loudness export (SAF). Shows coverage before applying.</string>
+    <string name="pref_title_loudness_export">Export loudness file</string>
+    <string name="pref_summary_loudness_export">Export stored measurements/gains as portable JSON (SAF).</string>
+    <string name="pref_title_loudness_scan">Scan library (on-phone)</string>
+    <string name="pref_summary_loudness_scan">Measure EBU R128 loudness with libebur128. Long job; runs as a foreground service and can be cancelled. Does not start automatically.</string>
+    <string name="pref_title_loudness_status">Stored entries</string>
+    <string name="pref_summary_loudness_status">No loudness data stored yet</string>
+    <string name="loudness_import_preview_title">Import preview</string>
+    <string name="loudness_import_apply">Apply import</string>
+    <string name="loudness_import_cancel">Cancel</string>
+    <string name="loudness_scan_notification_title">Scanning loudness</string>
+    <string name="loudness_scan_notification_text">Measuring track loudness...</string>
+    <string name="loudness_equal_times_error">Start and end times must be different</string>
 </resources>

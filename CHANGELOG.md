@@ -11,6 +11,9 @@ shared as APK files. For changes in the app itself, see the
 
 ## [Unreleased]
 
+### Added (branch `feature/loudness-normalization`, versionCode 10725)
+- Loudness normalization: JSON import/export, on-phone EBU R128 scan, strength/schedule controls.
+
 ### Changed (branch `feature/resume-after-other-media`, versionCode 10721, 7.0.3-custom.4-beta.5)
 - Merged current main into this branch so Resume after other media sits on top of the shuffle
   work, slider vibration and typed number boxes. The Resume delay slider now uses the same

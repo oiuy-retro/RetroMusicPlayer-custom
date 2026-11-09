@@ -206,6 +206,10 @@ class PlaybackManager(val context: Context) {
         playback?.setPlayerGain(gain)
     }
 
+    fun onLoudnessAttenuationChanged() {
+        (playback as? AudioManagerPlayback)?.onLoudnessAttenuationChanged()
+    }
+
     fun setPlaybackSpeedPitch(playbackSpeed: Float, playbackPitch: Float) {
         playback?.setPlaybackSpeedPitch(playbackSpeed, playbackPitch)
     }

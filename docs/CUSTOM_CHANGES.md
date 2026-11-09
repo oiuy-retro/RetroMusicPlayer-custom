@@ -388,3 +388,12 @@ Options for all modes:
   songs together with shuffle off.
 - Library data for Weighted and Genre blocks is read when shuffle starts, which can take a moment
   on large libraries.
+
+
+## 11. Loudness normalization (branch `feature/loudness-normalization`)
+
+- Settings → Loudness: import/export portable JSON (pinned to jellyfin-loudness-exporter@952392ae),
+  on-phone EBU R128 scan (libebur128), strength / max boost / max cut sliders with typed boxes and haptics,
+  optional daily schedule, playback gain with attenuation-only when true-peak is missing.
+- Room table `LoudnessEntity` (DB v25). versionCode 10725.
+- Details: `docs/loudness/`.
