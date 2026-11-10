@@ -281,9 +281,13 @@ unchanged. If building the order fails for any reason, it also falls back to the
   `shuffle_{group,artist}_min/max_minutes` and `shuffle_genre_min/max` (songs). All block modes
   share `ShuffleEngine.countBlocks` with a `BlockLimits` value.
 - **Entry points**: every queue shuffle goes through `ShuffleHelper.makeShuffleList(context, …)` →
-  `ShuffleQueueBuilder`. The Albums and Artists tab shuffle buttons are upstream's own feature
-  (random album/artist order, whole albums, shuffle off). When a mode other than True random is
-  chosen, they now open all songs with `openAndShuffleQueue` instead, so the mode applies.
+  `ShuffleQueueBuilder`. The Albums and Artists tab shuffle buttons call
+  `LibraryViewModel.shuffleSongs()`, the same as the Songs tab: all songs, shuffle on, in the
+  chosen mode. Upstream's version of these buttons (random album/artist order, each one's songs in
+  order, shuffle off) was kept for True random until 10724; that made True random look like
+  "a few random songs, then albums in order". `TrueRandomLargeLibraryTest` shuffles a
+  100,000-song library sorted by album and checks every song appears once and same-album
+  neighbours stay near the chance level.
   `MusicService` listens for `shuffle_*` preference changes and, after 0.8 s, reshuffles the
   part of the queue after the current song if shuffle is on.
 - **Settings layout**: each limit is a switch followed by its minimum and maximum slider; the
@@ -384,8 +388,6 @@ Options for all modes:
   MediaStore reports.
 - "Shuffle all" from the Songs list still starts on a random song chosen before the mode runs.
   With No repeats on, that first song can be one that was already played.
-- The Artists tab shuffle button is unchanged. It orders artists randomly and plays each artist's
-  songs together with shuffle off.
 - Library data for Weighted and Genre blocks is read when shuffle starts, which can take a moment
   on large libraries.
 
@@ -393,7 +395,8 @@ Options for all modes:
 ## 11. Loudness normalization (branch `feature/loudness-normalization`)
 
 - Settings → Loudness: import/export portable JSON (pinned to jellyfin-loudness-exporter@952392ae),
-  on-phone EBU R128 scan (libebur128), strength / max boost / max cut sliders with typed boxes and haptics,
-  optional daily schedule, playback gain with attenuation-only when true-peak is missing.
-- Room table `LoudnessEntity` (DB v25). versionCode 10725.
+  on-phone EBU R128 scan (libebur128), strength / max cut sliders with typed boxes and haptics,
+  optional daily schedule, attenuation-only playback (positive boost disabled).
+- Room table `LoudnessEntity` (DB v25). This branch is at versionCode 10727 and includes main's
+  True random fix (10724).
 - Details: `docs/loudness/`.

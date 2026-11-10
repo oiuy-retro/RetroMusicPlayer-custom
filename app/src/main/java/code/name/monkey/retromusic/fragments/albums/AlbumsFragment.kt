@@ -27,10 +27,8 @@ import code.name.monkey.retromusic.extensions.setUpMediaRouteButton
 import code.name.monkey.retromusic.fragments.GridStyle
 import code.name.monkey.retromusic.fragments.ReloadType
 import code.name.monkey.retromusic.fragments.base.AbsRecyclerViewCustomGridSizeFragment
-import code.name.monkey.retromusic.helper.MusicPlayerRemote
 import code.name.monkey.retromusic.helper.SortOrder.AlbumSortOrder
 import code.name.monkey.retromusic.interfaces.IAlbumClickListener
-import code.name.monkey.retromusic.service.MusicService
 import code.name.monkey.retromusic.util.PreferenceUtil
 import code.name.monkey.retromusic.util.RetroUtil
 
@@ -57,21 +55,10 @@ class AlbumsFragment : AbsRecyclerViewCustomGridSizeFragment<AlbumAdapter, GridL
         get() = true
 
     override fun onShuffleClicked() {
-        libraryViewModel.getAlbums().value?.let {
-            val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
-            if (code.name.monkey.retromusic.shuffle.ShuffleSettings.mode(prefs) !=
-                code.name.monkey.retromusic.shuffle.ShuffleMode.TRUE_RANDOM
-            ) {
-                // A shuffle mode is chosen in Settings > Shuffle: use it for this button too.
-                MusicPlayerRemote.openAndShuffleQueue(it.flatMap { album -> album.songs }, true)
-                return
-            }
-            MusicPlayerRemote.openQueue(
-                queue = it.shuffled().flatMap { album -> album.songs },
-                startPosition = 0,
-                startPlaying = true
-            )
-        }
+        // Shuffle all songs with the mode chosen in Settings > Shuffle. With True random this is a
+        // full random order. (Upstream's button shuffled the albums but played each album's songs
+        // in order with shuffle off, so it sounded like albums in order.)
+        libraryViewModel.shuffleSongs()
     }
 
     override fun createLayoutManager(): GridLayoutManager {

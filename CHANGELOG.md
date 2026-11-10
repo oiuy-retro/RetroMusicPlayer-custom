@@ -11,11 +11,22 @@ shared as APK files. For changes in the app itself, see the
 
 ## [Unreleased]
 
+### Changed (branch `feature/loudness-normalization`, versionCode 10727, 7.0.3-custom.9-beta.1)
+- Merged current main (True random fix, versionCode 10724) into this branch so loudness
+  normalization can be installed as an update on top of the latest main build. Playback remains
+  attenuation-only; album LUFS scanning is not implemented.
+
 ### Changed (branch `feature/loudness-normalization`, versionCode 10726)
 - Loudness self-audit: exact rootId+relativePath match only (no path-suffix fallback); attenuation-only playback (no LoudnessEnhancer boost); MediaCodec scanner hardened (PCM float/16, format-change, cancel, incremental skip); Android producer fields documented as additive RESERVED (not frozen).
 
 ### Added (branch `feature/loudness-normalization`, versionCode 10725)
 - Loudness normalization: JSON import/export, on-phone EBU R128 scan, strength/schedule controls.
+
+### Fixed (branch `fix/true-random-shuffle`, versionCode 10724, 7.0.3-custom.8-beta.1)
+- The shuffle button on the Albums and Artists tabs now shuffles all songs with the chosen shuffle
+  mode, also with True random. Before, with True random it kept upstream's behavior: albums (or
+  artists) in random order, but each one's songs played in order with shuffle off, so it sounded
+  like a few random songs and then albums in order.
 
 ### Changed (branch `feature/resume-after-other-media`, versionCode 10721, 7.0.3-custom.4-beta.5)
 - Merged current main into this branch so Resume after other media sits on top of the shuffle
