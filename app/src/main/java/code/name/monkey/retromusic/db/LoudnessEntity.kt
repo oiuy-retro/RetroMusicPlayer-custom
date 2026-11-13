@@ -6,7 +6,7 @@ import androidx.room.Index
 @Entity(
     tableName = "LoudnessEntity",
     primaryKeys = ["rootId", "relativePath"],
-    indices = [Index(value = ["relativePath"])],
+    indices = [Index(value = ["relativePath"]), Index(value = ["audioSha256"])],
 )
 data class LoudnessEntity(
     val rootId: String,
@@ -21,4 +21,6 @@ data class LoudnessEntity(
     val documentGainOrigin: String?,
     val trackSourceJson: String?,
     val updatedAt: Long,
+    /** jle-audio-v1 hash from an imported file whose audioHashAlgorithm is jle-audio-v1; else null. */
+    val audioSha256: String? = null,
 )

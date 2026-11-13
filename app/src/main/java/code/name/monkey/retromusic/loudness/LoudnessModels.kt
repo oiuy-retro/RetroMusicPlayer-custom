@@ -10,7 +10,14 @@ data class LoudnessDocument(
     val roots: List<RootInfo>,
     val tracks: List<TrackEntry>,
     val coverage: CoverageInfo?,
-)
+    /** Top-level `audioHashAlgorithm` exactly as read (null when absent). */
+    val audioHashAlgorithm: String? = null,
+    /** Track `audioSha256` values dropped on parse because they were not 64 lowercase hex. */
+    val ignoredInvalidAudioHashes: Int = 0,
+) {
+    /** True only when hashes in this document follow the jle-audio-v1 rules this app implements. */
+    val audioHashesUsable: Boolean get() = audioHashAlgorithm == JleAudioHash.ALGORITHM
+}
 
 data class CollisionKeyInfo(
     val caseFold: String?,
@@ -52,6 +59,8 @@ data class TrackEntry(
     val measuredLufs: Double? = null,
     val truePeakDbtp: Double? = null,
     val source: TrackSource? = null,
+    /** Optional jle-audio-v1 hash (64 lowercase hex). Only meaningful when the document's algorithm is known. */
+    val audioSha256: String? = null,
 )
 
 data class CoverageInfo(
@@ -65,6 +74,10 @@ data class CoverageInfo(
     val collisions: Int = 0,
     val outOfRangeGains: Int = 0,
     val rejected: Int = 0,
+    /** Present only with audioHashAlgorithm. */
+    val hashed: Int? = null,
+    /** Present only with audioHashAlgorithm. */
+    val hashUnavailable: Int? = null,
 )
 
 data class ImportPreview(

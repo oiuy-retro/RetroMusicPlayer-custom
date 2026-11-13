@@ -618,7 +618,7 @@
     <string name="pref_title_loudness_max_boost">Maximum boost</string>
     <string name="pref_summary_loudness_max_boost">Positive boost is disabled in this build (EQ/crossfade safety). This control is unused until a future limiter exists.</string>
     <string name="pref_title_loudness_max_cut">Maximum cut</string>
-    <string name="pref_summary_loudness_max_cut">Caps how far quiet tracks are raised toward the target by limiting attenuation magnitude.</string>
+    <string name="pref_summary_loudness_max_cut">Caps how far a loud track can be turned down, in dB. Quiet tracks are never raised in this build.</string>
     <string name="pref_title_loudness_prefer_album">Prefer album gain</string>
     <string name="pref_summary_loudness_prefer_album">Use album gain when present (from import), otherwise track gain. On-phone scan measures track LUFS only; albumGainDb is preserved on re-export but album scanning is not implemented.</string>
     <string name="pref_title_loudness_schedule">Limit to times of day</string>
@@ -628,7 +628,7 @@
     <string name="pref_title_loudness_map_root">Music root folder</string>
     <string name="pref_summary_loudness_map_root">Pick the Android folder that matches the export root relative tree (1:1).</string>
     <string name="pref_title_loudness_import">Import loudness file</string>
-    <string name="pref_summary_loudness_import">Import a portable JSON loudness export (SAF). Shows coverage before applying.</string>
+    <string name="pref_summary_loudness_import">Import a portable JSON loudness export (SAF). Songs are matched by audio hash first, then by exact path. Shows the match counts before applying.</string>
     <string name="pref_title_loudness_export">Export loudness file</string>
     <string name="pref_summary_loudness_export">Export stored measurements/gains as portable JSON (SAF).</string>
     <string name="pref_title_loudness_scan">Scan library (on-phone)</string>
@@ -640,5 +640,11 @@
     <string name="loudness_import_cancel">Cancel</string>
     <string name="loudness_scan_notification_title">Scanning loudness</string>
     <string name="loudness_scan_notification_text">Measuring track loudness...</string>
+    <string name="pref_title_loudness_hash_library">Hash phone library</string>
+    <string name="pref_summary_loudness_hash_library">Reads every song once to compute its audio hash (jle-audio-v1), so imported loudness matches songs by their audio even after files are moved or renamed. Tags and cover art are not part of the hash. Only changed files are read again on later runs. Runs as a foreground job and can be cancelled.</string>
+    <string name="loudness_hash_notification_title">Hashing music library</string>
+    <string name="loudness_hash_notification_text">Computing audio hashes...</string>
+    <string name="loudness_job_already_running">A loudness scan or hash job is already running</string>
+    <string name="loudness_export_hashing">Exporting; computing audio hashes for files not hashed yet...</string>
     <string name="loudness_equal_times_error">Start and end times must be different</string>
 </resources>

@@ -1,0 +1,13 @@
+These files are copied unchanged from oiuy-retro/jellyfin-loudness-exporter
+tests/fixtures/audio/ at commit 6af8e0c8d4f2e6e011369daaf81aaf80e7dbeefc
+(spec PR #5, branch feature/audio-sha256).
+
+They are short synthetic sine tones (0.5 to 1 second) generated for that
+project, plus a few deliberately malformed copies. No recorded music.
+vectors.json lists the expected jle-audio-v1 hash for each file (null means
+"no hash"). JleAudioHashTest checks every entry.
+
+They are committed here, not downloaded at test time, so the unit tests run
+offline and keep working even if the exporter branch is later squash-merged.
+If the exporter's vectors change, copy the new files from the pinned commit
+and update this note.

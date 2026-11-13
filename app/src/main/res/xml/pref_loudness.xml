@@ -104,6 +104,12 @@
         android:summary="@string/pref_summary_loudness_scan" />
 
     <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreference
+        android:key="loudness_hash_library"
+        android:layout="@layout/list_item_view"
+        android:title="@string/pref_title_loudness_hash_library"
+        android:summary="@string/pref_summary_loudness_hash_library" />
+
+    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreference
         android:key="loudness_status"
         android:layout="@layout/list_item_view"
         android:title="@string/pref_title_loudness_status"

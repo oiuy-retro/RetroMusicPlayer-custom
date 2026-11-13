@@ -15,11 +15,14 @@ import kotlin.math.abs
  * Applies per-track loudness normalization on top of player volume / fade / duck.
  * Attenuation-only (no LoudnessEnhancer): EQ/crossfade can exceed file true-peak
  * headroom and this build has no proven output limiter.
- * Exact match only: configured filesystem root + exact relativePath.
+ * Matching order: the song's jle-audio-v1 hash against imported audioSha256 values
+ * first (works without a mapped root, including content:// roots), then the exact
+ * configured filesystem root + relativePath as the fallback.
  */
 class LoudnessController(
     private val repository: LoudnessRepository,
     private val scope: CoroutineScope,
+    private val hasher: PhoneAudioHasher? = null,
 ) {
     @Volatile var attenuationLinear: Float = 1f
         private set
@@ -59,13 +62,8 @@ class LoudnessController(
         }
         val rootId = PreferenceUtil.loudnessRootId
         val rootPath = PreferenceUtil.loudnessRootUri
-        if (rootId.isBlank() || rootPath.isBlank()) {
-            clear(onApplied)
-            return
-        }
         job = scope.launch(Dispatchers.IO) {
-            val relative = relativeForSong(song, rootPath)
-            val entity = if (relative != null) repository.lookupExact(rootId, relative) else null
+            val entity = lookupForSong(song, rootId, rootPath)
             val appliedDb = computeAppliedDb(entity)
             val att = LoudnessGainMath.dbToLinear(appliedDb).coerceIn(0.0, 1.0).toFloat()
             launch(Dispatchers.Main) {
@@ -85,6 +83,22 @@ class LoudnessController(
         ) {
             clear(onApplied)
         }
+    }
+
+    /** Hash match first, then exact path. Null when neither matches. */
+    private suspend fun lookupForSong(song: Song, rootId: String, rootPath: String): LoudnessEntity? {
+        val byHash = try {
+            if (hasher != null && repository.countWithAudioHash() > 0) {
+                // Computes and caches the hash on first play of a file not hashed yet.
+                hasher.hashForSong(song, computeIfMissing = true)?.let { repository.lookupByAudioHash(it) }
+            } else null
+        } catch (e: Exception) {
+            null
+        }
+        if (byHash != null) return byHash
+        if (rootId.isBlank() || rootPath.isBlank()) return null
+        val relative = relativeForSong(song, rootPath) ?: return null
+        return repository.lookupExact(rootId, relative)
     }
 
     private fun cancelRamp() {

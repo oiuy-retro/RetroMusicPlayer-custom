@@ -14,6 +14,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.db.LoudnessDao
+import code.name.monkey.retromusic.repository.SongRepository
 import code.name.monkey.retromusic.activities.MainActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,11 +27,14 @@ import org.koin.java.KoinJavaComponent.get
 import java.io.File
 
 /**
- * Foreground scan job. Does not start on install. Cancel via stop action.
+ * Foreground loudness jobs: the on-phone loudness scan, or hashing the phone library
+ * (jle-audio-v1) for song-hash matching. One job at a time. Does not start on install.
+ * Cancel via the notification's Stop action.
  */
 class LoudnessScanService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var job: Job? = null
+    private var hashing = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -44,6 +48,13 @@ class LoudnessScanService : Service() {
             ACTION_START -> {
                 val root = intent.getStringExtra(EXTRA_ROOT) ?: return START_NOT_STICKY
                 val rootId = intent.getStringExtra(EXTRA_ROOT_ID) ?: "music"
+                if (running) {
+                    // Already foreground with a job; satisfy startForegroundService and ignore.
+                    startInForeground()
+                    return START_NOT_STICKY
+                }
+                running = true
+                hashing = false
                 startInForeground()
                 job?.cancel()
                 job = scope.launch {
@@ -57,6 +68,48 @@ class LoudnessScanService : Service() {
                             updateNotification(progress.processed, progress.total, progress.currentPath)
                         }
                     } finally {
+                        running = false
+                        stopSelf()
+                    }
+                }
+            }
+            ACTION_HASH -> {
+                if (running) {
+                    // Already foreground with a job; satisfy startForegroundService and ignore.
+                    startInForeground()
+                    return START_NOT_STICKY
+                }
+                running = true
+                hashing = true
+                startInForeground()
+                job?.cancel()
+                job = scope.launch {
+                    try {
+                        val dao = get(LoudnessDao::class.java) as LoudnessDao
+                        val hasher = PhoneAudioHasher(this@LoudnessScanService, dao)
+                        val songs = (get(SongRepository::class.java) as SongRepository).songs()
+                        val total = songs.size
+                        var done = 0
+                        var hashedNow = 0
+                        updateNotification(0, total, null)
+                        for (song in songs) {
+                            if (!isActive) break
+                            if (!hasher.isCachedFresh(song)) {
+                                hasher.hashForSong(song, computeIfMissing = true)
+                                hashedNow++
+                            }
+                            done++
+                            if (done % 5 == 0 || done == total) {
+                                updateNotification(done, total, song.title)
+                            }
+                        }
+                        // Only prune after a complete pass, so a cancelled run keeps its cache.
+                        if (isActive && done == total) {
+                            hasher.prune(songs.map { it.data }.toHashSet())
+                        }
+                        lastHashSummary = "$done / $total checked, $hashedNow hashed now"
+                    } finally {
+                        running = false
                         stopSelf()
                     }
                 }
@@ -96,9 +149,17 @@ class LoudnessScanService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(getString(R.string.loudness_scan_notification_title))
+            .setContentTitle(
+                getString(
+                    if (hashing) R.string.loudness_hash_notification_title
+                    else R.string.loudness_scan_notification_title
+                )
+            )
             .setContentText(
-                if (total <= 0) getString(R.string.loudness_scan_notification_text)
+                if (total <= 0) getString(
+                    if (hashing) R.string.loudness_hash_notification_text
+                    else R.string.loudness_scan_notification_text
+                )
                 else "$done / $total ${current ?: ""}"
             )
             .setSmallIcon(R.drawable.ic_equalizer)
@@ -119,6 +180,7 @@ class LoudnessScanService : Service() {
     }
 
     override fun onDestroy() {
+        running = false
         job?.cancel()
         scope.cancel()
         super.onDestroy()
@@ -129,6 +191,20 @@ class LoudnessScanService : Service() {
         private const val NOTIFICATION_ID = 47201
         const val ACTION_START = "code.name.monkey.retromusic.loudness.SCAN_START"
         const val ACTION_STOP = "code.name.monkey.retromusic.loudness.SCAN_STOP"
+        const val ACTION_HASH = "code.name.monkey.retromusic.loudness.HASH_LIBRARY"
+
+        /** True while a scan or hash job runs (process-local). */
+        @Volatile var running: Boolean = false
+            private set
+
+        /** Short result of the last finished hash run in this process, for the settings status. */
+        @Volatile var lastHashSummary: String? = null
+            private set
+
+        fun startHashing(context: Context) {
+            val i = Intent(context, LoudnessScanService::class.java).setAction(ACTION_HASH)
+            ContextCompat.startForegroundService(context, i)
+        }
         const val EXTRA_ROOT = "root"
         const val EXTRA_ROOT_ID = "rootId"
 

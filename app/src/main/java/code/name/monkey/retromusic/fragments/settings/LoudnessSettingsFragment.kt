@@ -15,12 +15,15 @@ import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.db.LoudnessDao
 import code.name.monkey.retromusic.extensions.showToast
 import code.name.monkey.retromusic.loudness.CollisionKey
+import code.name.monkey.retromusic.loudness.JleAudioHash
 import code.name.monkey.retromusic.loudness.LoudnessJson
+import code.name.monkey.retromusic.loudness.LoudnessMatching
 import code.name.monkey.retromusic.loudness.LoudnessRepository
 import code.name.monkey.retromusic.loudness.LoudnessScanService
 import code.name.monkey.retromusic.loudness.LoudnessSchedule
 import code.name.monkey.retromusic.loudness.ParseResult
 import code.name.monkey.retromusic.loudness.PathValidation
+import code.name.monkey.retromusic.loudness.PhoneAudioHasher
 import code.name.monkey.retromusic.preferences.EditableSeekBarPreference
 import code.name.monkey.retromusic.util.PreferenceUtil
 import kotlinx.coroutines.Dispatchers
@@ -32,6 +35,7 @@ import java.io.File
 class LoudnessSettingsFragment : AbsSettingsFragment() {
     private val loudnessDao: LoudnessDao by inject()
     private val repository by lazy { LoudnessRepository(loudnessDao) }
+    private val hasher by lazy { PhoneAudioHasher(requireContext(), loudnessDao) }
 
     private var pendingDocumentJson: String? = null
 
@@ -112,8 +116,18 @@ class LoudnessSettingsFragment : AbsSettingsFragment() {
             val root = PreferenceUtil.loudnessRootUri
             if (root.isBlank() || !File(root).isDirectory) {
                 showToast(R.string.pref_summary_loudness_map_root)
+            } else if (LoudnessScanService.running) {
+                showToast(R.string.loudness_job_already_running)
             } else {
                 LoudnessScanService.start(requireContext(), root, PreferenceUtil.loudnessRootId)
+            }
+            true
+        }
+        findPreference<Preference>("loudness_hash_library")?.setOnPreferenceClickListener {
+            if (LoudnessScanService.running) {
+                showToast(R.string.loudness_job_already_running)
+            } else {
+                LoudnessScanService.startHashing(requireContext())
             }
             true
         }
@@ -123,9 +137,18 @@ class LoudnessSettingsFragment : AbsSettingsFragment() {
     private fun refreshStatus() {
         viewLifecycleOwner.lifecycleScope.launch {
             val count = repository.count()
+            val withHash = repository.countWithAudioHash()
+            val (phoneHashed, phoneNoHash) = withContext(Dispatchers.IO) {
+                loudnessDao.countPhoneHashed(JleAudioHash.ALGORITHM) to
+                    loudnessDao.countPhoneNoHash(JleAudioHash.ALGORITHM)
+            }
             findPreference<Preference>("loudness_status")?.summary =
                 if (count == 0) getString(R.string.pref_summary_loudness_status)
-                else "$count stored entries · root=${PreferenceUtil.loudnessRootId} · path=${PreferenceUtil.loudnessRootUri.ifBlank { "(unset)" }}"
+                else "$count stored entries ($withHash with a song hash) · root=${PreferenceUtil.loudnessRootId} · path=${PreferenceUtil.loudnessRootUri.ifBlank { "(unset)" }}"
+            findPreference<Preference>("loudness_hash_library")?.summary =
+                getString(R.string.pref_summary_loudness_hash_library) +
+                    "\nPhone files hashed: $phoneHashed · no hash possible: $phoneNoHash" +
+                    (LoudnessScanService.lastHashSummary?.let { "\nLast run: $it" } ?: "")
         }
     }
 
@@ -165,20 +188,47 @@ class LoudnessSettingsFragment : AbsSettingsFragment() {
                 is ParseResult.Ok -> {
                     val doc = parsed.document
                     val rootPath = PreferenceUtil.loudnessRootUri
-                    var unmatched = 0
-                    if (rootPath.isNotBlank() && File(rootPath).isDirectory) {
-                        unmatched = withContext(Dispatchers.IO) {
-                            doc.tracks.count { t ->
-                                val abs = File(rootPath, t.relativePath)
-                                !abs.isFile
-                            }
-                        }
+                    val rootDir = rootPath.takeIf { it.isNotBlank() }?.let { File(it) }?.takeIf { it.isDirectory }
+                    val (summary, phoneHashed) = withContext(Dispatchers.IO) {
+                        val phoneCounts = loudnessDao.phoneHashCounts(JleAudioHash.ALGORITHM)
+                            .associate { it.audioSha256 to it.files }
+                        val pathExists: ((code.name.monkey.retromusic.loudness.TrackEntry) -> Boolean)? =
+                            rootDir?.let { dir -> { t -> File(dir, t.relativePath).isFile } }
+                        LoudnessMatching.summarize(doc, phoneCounts, pathExists) to
+                            loudnessDao.countPhoneHashed(JleAudioHash.ALGORITHM)
                     }
                     val msg = buildString {
                         append("tracks=${doc.tracks.size}\n")
                         append("roots=${doc.roots.joinToString { it.id }}\n")
                         append("source=${doc.source.kind}/${doc.source.gainOrigin}\n")
-                        append("unmatched_on_device=$unmatched\n")
+                        when (summary.hashStatus) {
+                            LoudnessMatching.HashStatus.USED ->
+                                append("song hashes: ${JleAudioHash.ALGORITHM}\n")
+                            LoudnessMatching.HashStatus.ABSENT ->
+                                append("song hashes: none in this file (paths only)\n")
+                            LoudnessMatching.HashStatus.UNKNOWN_ALGORITHM ->
+                                append("song hashes: unknown algorithm \"${summary.algorithm}\", ignored; using paths only\n")
+                        }
+                        append("matched_by_hash=${summary.matchedByHash}")
+                        if (summary.phoneFilesMatchedByHash != summary.matchedByHash) {
+                            append(" (${summary.phoneFilesMatchedByHash} phone files)")
+                        }
+                        append("\n")
+                        append("matched_by_path=${summary.matchedByPath}")
+                        if (!summary.pathCheckPossible) append(" (no folder root mapped)")
+                        append("\n")
+                        append("unmatched=${summary.unmatched}\n")
+                        if (summary.hashStatus == LoudnessMatching.HashStatus.USED) {
+                            append("hashUnavailable=${summary.hashUnavailable}\n")
+                        }
+                        if (summary.ignoredInvalidHashes > 0) {
+                            append("invalid_hashes_ignored=${summary.ignoredInvalidHashes}\n")
+                        }
+                        append("phone_files_hashed=$phoneHashed")
+                        if (phoneHashed == 0 && summary.hashStatus == LoudnessMatching.HashStatus.USED) {
+                            append(" (run \"Hash phone library\" for hash matches)")
+                        }
+                        append("\n")
                         append("coverage.collisions=${doc.coverage?.collisions ?: 0}\n")
                         append("Applying replaces all stored loudness rows.")
                     }
@@ -212,8 +262,18 @@ class LoudnessSettingsFragment : AbsSettingsFragment() {
     private fun exportToUri(uri: Uri) {
         viewLifecycleOwner.lifecycleScope.launch {
             CollisionKey.ensureLoaded(requireContext())
+            showToast(R.string.loudness_export_hashing)
+            val rootId = PreferenceUtil.loudnessRootId
+            val rootDir = PreferenceUtil.loudnessRootUri.takeIf { it.isNotBlank() }
+                ?.let { File(it) }?.takeIf { it.isDirectory }
             val doc = repository.exportDocument(
-                producerVersion = "${BuildConfig.VERSION_NAME}-${BuildConfig.VERSION_CODE}"
+                producerVersion = "${BuildConfig.VERSION_NAME}-${BuildConfig.VERSION_CODE}",
+                // Hash of the phone's own file at root + relativePath (cached, computed if missing).
+                audioHashFor = { e ->
+                    if (rootDir != null && e.rootId == rootId) {
+                        hasher.hashForFile(File(rootDir, e.relativePath), computeIfMissing = true)
+                    } else null
+                },
             )
             val json = withContext(Dispatchers.Default) { LoudnessJson.write(doc) }
             withContext(Dispatchers.IO) {
@@ -221,7 +281,8 @@ class LoudnessSettingsFragment : AbsSettingsFragment() {
                     w?.write(json)
                 }
             }
-            showToast("Exported ${doc.tracks.size} tracks")
+            val hashed = doc.tracks.count { it.audioSha256 != null }
+            showToast("Exported ${doc.tracks.size} tracks ($hashed with a song hash)")
         }
     }
 }

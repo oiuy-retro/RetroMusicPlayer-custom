@@ -110,6 +110,7 @@ import code.name.monkey.retromusic.db.LoudnessDao
 import code.name.monkey.retromusic.loudness.CollisionKey
 import code.name.monkey.retromusic.loudness.LoudnessController
 import code.name.monkey.retromusic.loudness.LoudnessRepository
+import code.name.monkey.retromusic.loudness.PhoneAudioHasher
 import code.name.monkey.retromusic.LOUDNESS_ENABLED
 import code.name.monkey.retromusic.LOUDNESS_STRENGTH
 import code.name.monkey.retromusic.LOUDNESS_MAX_BOOST_DB
@@ -339,6 +340,7 @@ class MusicService : MediaBrowserServiceCompat(),
         loudnessController = LoudnessController(
             LoudnessRepository(get(LoudnessDao::class.java)),
             serviceScope,
+            PhoneAudioHasher(this, get(LoudnessDao::class.java)),
         )
         setupMediaSession()
 

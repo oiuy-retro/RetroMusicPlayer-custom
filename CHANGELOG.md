@@ -11,6 +11,23 @@ shared as APK files. For changes in the app itself, see the
 
 ## [Unreleased]
 
+### Added (branch `feature/loudness-normalization`, versionCode 10729, 7.0.3-custom.9-beta.2)
+- Song-hash matching for loudness import. Each song gets an audio hash (`jle-audio-v1`) that
+  covers only the audio, not tags or cover art, so moved, renamed or retagged files still match.
+  Import matches by hash first and by exact path second. Works with a content:// music folder
+  too, and without any mapped folder at all.
+- Settings → Loudness → **Hash phone library**: reads every song once as a cancellable foreground
+  job and remembers the result per file (size and modified time); later runs only read changed
+  files. Songs that were not hashed yet are hashed the first time they play.
+- The import preview shows matched by hash, matched by path, unmatched and hashUnavailable.
+- Export adds `audioHashAlgorithm` and per-track `audioSha256` for files under the mapped folder,
+  so a file exported from the phone can be imported again by hash.
+- Database v26 (adds the hash column and a phone hash cache; existing loudness rows are kept).
+
+### Fixed (branch `feature/loudness-normalization`, versionCode 10729)
+- The Maximum cut setting's description said it raises quiet tracks. It limits how far loud
+  tracks are turned down; this build never raises quiet tracks.
+
 ### Changed (branch `feature/loudness-normalization`, versionCode 10727, 7.0.3-custom.9-beta.1)
 - Merged current main (True random fix, versionCode 10724) into this branch so loudness
   normalization can be installed as an update on top of the latest main build. Playback remains

@@ -15,6 +15,11 @@ class LoudnessRepository(private val dao: LoudnessDao) {
     suspend fun lookupExact(rootId: String, relativePath: String): LoudnessEntity? =
         withContext(Dispatchers.IO) { dao.get(rootId, relativePath) }
 
+    suspend fun lookupByAudioHash(audioSha256: String): LoudnessEntity? =
+        withContext(Dispatchers.IO) { dao.getByAudioHash(audioSha256) }
+
+    suspend fun countWithAudioHash(): Int = withContext(Dispatchers.IO) { dao.countWithAudioHash() }
+
     suspend fun hasMeasured(rootId: String, relativePath: String): Boolean =
         withContext(Dispatchers.IO) {
             val e = dao.get(rootId, relativePath) ?: return@withContext false
@@ -23,6 +28,7 @@ class LoudnessRepository(private val dao: LoudnessDao) {
 
     suspend fun importDocument(document: LoudnessDocument): Int = withContext(Dispatchers.IO) {
         val now = System.currentTimeMillis()
+        val keepHashes = document.audioHashesUsable
         val rows = document.tracks.map { t ->
             LoudnessEntity(
                 rootId = t.rootId,
@@ -37,6 +43,7 @@ class LoudnessRepository(private val dao: LoudnessDao) {
                 documentGainOrigin = document.source.gainOrigin,
                 trackSourceJson = t.source?.let { gson.toJson(it) },
                 updatedAt = now,
+                audioSha256 = if (keepHashes) t.audioSha256 else null,
             )
         }
         dao.replaceAllAtomic(rows)
@@ -73,6 +80,7 @@ class LoudnessRepository(private val dao: LoudnessDao) {
                     )
                 ),
                 updatedAt = System.currentTimeMillis(),
+                audioSha256 = existing?.audioSha256,
             )
         )
     }
@@ -80,6 +88,8 @@ class LoudnessRepository(private val dao: LoudnessDao) {
     suspend fun exportDocument(
         producerVersion: String,
         rootIdFilter: String? = null,
+        /** When set, each exported track gets this phone-computed jle-audio-v1 hash (or none). */
+        audioHashFor: (suspend (LoudnessEntity) -> String?)? = null,
     ): LoudnessDocument = withContext(Dispatchers.IO) {
         val all = dao.getAll().let { list ->
             if (rootIdFilter == null) list else list.filter { it.rootId == rootIdFilter }
@@ -93,6 +103,7 @@ class LoudnessRepository(private val dao: LoudnessDao) {
         var missingBoth = 0
         var outOfRange = 0
         val tracks = kept.map { e ->
+            val hash = audioHashFor?.invoke(e)
             if (e.trackGainDb == null) missingTrack++
             if (e.albumGainDb == null) missingAlbum++
             if (e.trackGainDb == null && e.albumGainDb == null) missingBoth++
@@ -107,6 +118,7 @@ class LoudnessRepository(private val dao: LoudnessDao) {
                 albumGainDb = e.albumGainDb,
                 measuredLufs = e.measuredLufs,
                 truePeakDbtp = e.truePeakDbtp,
+                audioSha256 = hash,
                 source = e.trackSourceJson?.let {
                     try { gson.fromJson(it, TrackSource::class.java) } catch (_: Exception) { null }
                 },
@@ -157,7 +169,10 @@ class LoudnessRepository(private val dao: LoudnessDao) {
                 collisions = collisions,
                 outOfRangeGains = outOfRange,
                 rejected = 0,
+                hashed = if (audioHashFor != null) tracks.count { it.audioSha256 != null } else null,
+                hashUnavailable = if (audioHashFor != null) tracks.count { it.audioSha256 == null } else null,
             ),
+            audioHashAlgorithm = if (audioHashFor != null) JleAudioHash.ALGORITHM else null,
         )
     }
 }

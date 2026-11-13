@@ -68,6 +68,7 @@ object LoudnessJson {
         val exactKeys = HashSet<String>()
         val collisionGroups = HashMap<String, Int>()
         var rejected = 0
+        var ignoredInvalidHashes = 0
 
         for (el in tracksArr) {
             if (!el.isJsonObject) return ParseResult.Error("invalid_track")
@@ -107,6 +108,17 @@ object LoudnessJson {
                 )
             }
 
+            // Optional additive field. Never guessed: anything but 64 lowercase hex is dropped and counted.
+            val audioSha256 = when (val h = t.get("audioSha256")) {
+                null -> null
+                else -> if (h.isJsonPrimitive && h.asJsonPrimitive.isString && JleAudioHash.isValidHex(h.asString)) {
+                    h.asString
+                } else {
+                    if (!h.isJsonNull) ignoredInvalidHashes++
+                    null
+                }
+            }
+
             val exact = rootId + "\u0000" + relativePath
             if (!exactKeys.add(exact)) return ParseResult.Error("duplicate_exact_path")
 
@@ -128,6 +140,7 @@ object LoudnessJson {
                     measuredLufs = (measured as? GainRead.Value)?.value,
                     truePeakDbtp = (peak as? GainRead.Value)?.value,
                     source = trackSource,
+                    audioSha256 = audioSha256,
                 )
             )
         }
@@ -162,6 +175,8 @@ object LoudnessJson {
                 collisions = c.getInt("collisions") ?: 0,
                 outOfRangeGains = c.getInt("outOfRangeGains") ?: 0,
                 rejected = c.getInt("rejected") ?: rejected,
+                hashed = c.getInt("hashed"),
+                hashUnavailable = c.getInt("hashUnavailable"),
             )
         }
 
@@ -176,6 +191,8 @@ object LoudnessJson {
                 roots = roots,
                 tracks = tracks,
                 coverage = coverage,
+                audioHashAlgorithm = root.getString("audioHashAlgorithm"),
+                ignoredInvalidAudioHashes = ignoredInvalidHashes,
             )
         )
     }
@@ -197,6 +214,7 @@ object LoudnessJson {
                 ck.relativePath?.let { w.name("relativePath").value(it) }
                 w.endObject()
             }
+            document.audioHashAlgorithm?.let { w.name("audioHashAlgorithm").value(it) }
             w.name("source").beginObject()
             val s = document.source
             w.name("kind").value(s.kind)
@@ -226,6 +244,9 @@ object LoudnessJson {
                 t.albumGainDb?.let { w.name("albumGainDb").value(it) }
                 t.measuredLufs?.let { w.name("measuredLufs").value(it) }
                 t.truePeakDbtp?.let { w.name("truePeakDbtp").value(it) }
+                if (document.audioHashAlgorithm != null) {
+                    t.audioSha256?.let { w.name("audioSha256").value(it) }
+                }
                 t.source?.let { ts ->
                     w.name("source").beginObject()
                     ts.kind?.let { w.name("kind").value(it) }
@@ -250,6 +271,12 @@ object LoudnessJson {
                 w.name("collisions").value(c.collisions)
                 w.name("outOfRangeGains").value(c.outOfRangeGains)
                 w.name("rejected").value(c.rejected)
+                if (document.audioHashAlgorithm != null) {
+                    w.name("hashed").value(c.hashed ?: document.tracks.count { it.audioSha256 != null })
+                    w.name("hashUnavailable").value(
+                        c.hashUnavailable ?: document.tracks.count { it.audioSha256 == null }
+                    )
+                }
                 w.name("errors").beginArray().endArray()
                 w.endObject()
             }

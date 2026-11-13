@@ -1,3 +1,5 @@
 commit=952392ae3c7e6e2eb2f976eb9cd7d51ea5fce03d
 repo=https://github.com/oiuy-retro/jellyfin-loudness-exporter
 format=https://github.com/oiuy-retro/jellyfin-loudness-exporter/blob/952392ae3c7e6e2eb2f976eb9cd7d51ea5fce03d/docs/FORMAT.md
+audio_hash_commit=6af8e0c8d4f2e6e011369daaf81aaf80e7dbeefc
+audio_hash_spec=https://github.com/oiuy-retro/jellyfin-loudness-exporter/blob/6af8e0c8d4f2e6e011369daaf81aaf80e7dbeefc/docs/FORMAT.md#audio-hash-jle-audio-v1
