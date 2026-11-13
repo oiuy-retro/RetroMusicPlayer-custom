@@ -10,6 +10,7 @@ plugins {
 
 android {
     compileSdk = 36
+    ndkVersion = "28.0.13004108"
     namespace = "code.name.monkey.retromusic"
 
     defaultConfig {
@@ -21,10 +22,23 @@ android {
         }
 
         applicationId = namespace
-        versionCode = 10724
+        versionCode = 10729
         versionName = "7.0.3"
 
         buildConfigField("String", "GOOGLE_PLAY_LICENSING_KEY", "\"${getProperty(getProperties("../public.properties"), "GOOGLE_PLAY_LICENSE_KEY")}\"")
+        externalNativeBuild {
+            cmake {
+                cppFlags += listOf("-std=c++17")
+            }
+        }
+        ndk {
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+        }
     }
     val signingProperties = getProperties("retro.properties")
     val theSigningConfig = if (signingProperties != null) {

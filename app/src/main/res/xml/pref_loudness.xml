@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESwitchPreference
+        android:defaultValue="false"
+        android:key="loudness_enabled"
+        android:layout="@layout/list_item_view_switch"
+        android:summary="@string/pref_summary_loudness_enabled"
+        android:title="@string/pref_title_loudness_enabled" />
+
+    <code.name.monkey.retromusic.preferences.EditableSeekBarPreference
+        android:defaultValue="100"
+        android:dependency="loudness_enabled"
+        android:key="loudness_strength"
+        android:layout="@layout/list_item_view_seekbar_editable"
+        android:max="100"
+        android:title="@string/pref_title_loudness_strength"
+        android:summary="@string/pref_summary_loudness_strength"
+        app:ateKey_pref_unit="%"
+        app:min="0"
+        app:showSeekBarValue="false"
+        app:updatesContinuously="true" />
+
+    <code.name.monkey.retromusic.preferences.EditableSeekBarPreference
+        android:defaultValue="0"
+        android:dependency="loudness_enabled"
+        android:enabled="false"
+        android:key="loudness_max_boost_db"
+        android:layout="@layout/list_item_view_seekbar_editable"
+        android:max="12"
+        android:title="@string/pref_title_loudness_max_boost"
+        android:summary="@string/pref_summary_loudness_max_boost"
+        app:ateKey_pref_unit="dB"
+        app:min="0"
+        app:showSeekBarValue="false"
+        app:updatesContinuously="true" />
+
+    <code.name.monkey.retromusic.preferences.EditableSeekBarPreference
+        android:defaultValue="20"
+        android:dependency="loudness_enabled"
+        android:key="loudness_max_cut_db"
+        android:layout="@layout/list_item_view_seekbar_editable"
+        android:max="30"
+        android:title="@string/pref_title_loudness_max_cut"
+        android:summary="@string/pref_summary_loudness_max_cut"
+        app:ateKey_pref_unit="dB"
+        app:min="0"
+        app:showSeekBarValue="false"
+        app:updatesContinuously="true" />
+
+    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESwitchPreference
+        android:defaultValue="false"
+        android:dependency="loudness_enabled"
+        android:key="loudness_prefer_album"
+        android:layout="@layout/list_item_view_switch"
+        android:summary="@string/pref_summary_loudness_prefer_album"
+        android:title="@string/pref_title_loudness_prefer_album" />
+
+    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATESwitchPreference
+        android:defaultValue="false"
+        android:dependency="loudness_enabled"
+        android:key="loudness_schedule_enabled"
+        android:layout="@layout/list_item_view_switch"
+        android:summary="@string/pref_summary_loudness_schedule"
+        android:title="@string/pref_title_loudness_schedule" />
+
+    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreference
+        android:dependency="loudness_schedule_enabled"
+        android:key="loudness_schedule_start"
+        android:layout="@layout/list_item_view"
+        android:title="@string/pref_title_loudness_schedule_start"
+        android:summary="22:00" />
+
+    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreference
+        android:dependency="loudness_schedule_enabled"
+        android:key="loudness_schedule_end"
+        android:layout="@layout/list_item_view"
+        android:title="@string/pref_title_loudness_schedule_end"
+        android:summary="07:00" />
+
+    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreference
+        android:key="loudness_map_root"
+        android:layout="@layout/list_item_view"
+        android:title="@string/pref_title_loudness_map_root"
+        android:summary="@string/pref_summary_loudness_map_root" />
+
+    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreference
+        android:key="loudness_import"
+        android:layout="@layout/list_item_view"
+        android:title="@string/pref_title_loudness_import"
+        android:summary="@string/pref_summary_loudness_import" />
+
+    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreference
+        android:key="loudness_export"
+        android:layout="@layout/list_item_view"
+        android:title="@string/pref_title_loudness_export"
+        android:summary="@string/pref_summary_loudness_export" />
+
+    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreference
+        android:key="loudness_scan"
+        android:layout="@layout/list_item_view"
+        android:title="@string/pref_title_loudness_scan"
+        android:summary="@string/pref_summary_loudness_scan" />
+
+    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreference
+        android:key="loudness_hash_library"
+        android:layout="@layout/list_item_view"
+        android:title="@string/pref_title_loudness_hash_library"
+        android:summary="@string/pref_summary_loudness_hash_library" />
+
+    <code.name.monkey.appthemehelper.common.prefs.supportv7.ATEPreference
+        android:key="loudness_status"
+        android:layout="@layout/list_item_view"
+        android:title="@string/pref_title_loudness_status"
+        android:summary="@string/pref_summary_loudness_status" />
+
+</androidx.preference.PreferenceScreen>

@@ -144,3 +144,10 @@ key as the installed copy. A lower versionCode than the installed one also fails
 **Gradle runs out of memory**
 Close other heavy apps, or raise `org.gradle.jvmargs` in your **user** `~/.gradle/gradle.properties`
 rather than the checked-in one.
+
+
+## Loudness native library
+
+On-phone EBU R128 scanning uses MIT libebur128 sources under `third_party/libebur128/`
+built through CMake/NDK (`app/src/main/cpp`). Requires a complete Android NDK with
+`build/cmake/android.toolchain.cmake`. Built `.so` files are not committed.

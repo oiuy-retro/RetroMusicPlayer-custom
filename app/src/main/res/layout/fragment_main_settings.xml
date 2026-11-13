@@ -51,6 +51,15 @@
             app:settingListItemTitle="@string/pref_header_shuffle" />
 
         <code.name.monkey.retromusic.views.SettingListItemView
+            android:id="@+id/loudnessSettings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:settingListItemIcon="@drawable/ic_equalizer"
+            app:settingListItemIconColor="@color/md_cyan_400"
+            app:settingListItemText="@string/pref_summary_loudness_enabled"
+            app:settingListItemTitle="@string/pref_header_loudness" />
+
+        <code.name.monkey.retromusic.views.SettingListItemView
             android:id="@+id/personalizeSettings"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

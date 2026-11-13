@@ -390,3 +390,18 @@ Options for all modes:
   With No repeats on, that first song can be one that was already played.
 - Library data for Weighted and Genre blocks is read when shuffle starts, which can take a moment
   on large libraries.
+
+
+## 11. Loudness normalization (branch `feature/loudness-normalization`)
+
+- Settings → Loudness: import/export portable JSON (pinned to jellyfin-loudness-exporter@952392ae;
+  audio hash rules pinned to 6af8e0c8),
+  on-phone EBU R128 scan (libebur128), strength / max cut sliders with typed boxes and haptics,
+  optional daily schedule, attenuation-only playback (positive boost disabled).
+- Song-hash matching (`jle-audio-v1`, the exporter's audio-only SHA-256): import matches by
+  `audioSha256` first, then by exact `rootId` + `relativePath`. "Hash phone library" hashes the
+  library as a foreground job with a per-file cache; the import preview shows matched by hash,
+  matched by path, unmatched and hashUnavailable. Export writes hashes too.
+- Room tables `LoudnessEntity` and `AudioHashCacheEntity` (DB v26, migration from v25). This
+  branch is at versionCode 10729 and includes main's True random fix (10724).
+- Details: `docs/loudness/`.

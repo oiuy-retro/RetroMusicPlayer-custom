@@ -51,6 +51,14 @@
             app:popExitAnim="@anim/retro_fragment_close_exit" />
 
         <action
+            android:id="@+id/action_mainSettingsFragment_to_loudnessSettings"
+            app:destination="@id/loudnessSettings"
+            app:enterAnim="@anim/retro_fragment_open_enter"
+            app:exitAnim="@anim/retro_fragment_open_exit"
+            app:popEnterAnim="@anim/retro_fragment_close_enter"
+            app:popExitAnim="@anim/retro_fragment_close_exit" />
+
+        <action
             android:id="@+id/action_mainSettingsFragment_to_otherSettingsFragment"
             app:destination="@id/otherSettingsFragment"
             app:enterAnim="@anim/retro_fragment_open_enter"
@@ -94,6 +102,11 @@
         android:id="@+id/audioSettings"
         android:name="code.name.monkey.retromusic.fragments.settings.AudioSettings"
         android:label="Audio" />
+
+    <fragment
+        android:id="@+id/loudnessSettings"
+        android:name="code.name.monkey.retromusic.fragments.settings.LoudnessSettingsFragment"
+        android:label="Loudness" />
 
     <fragment
         android:id="@+id/imageSettingFragment"
