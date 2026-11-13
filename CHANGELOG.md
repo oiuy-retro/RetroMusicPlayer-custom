@@ -11,6 +11,16 @@ shared as APK files. For changes in the app itself, see the
 
 ## [Unreleased]
 
+### Added (branch `feature/hide-artist-albums`, versionCode 10728, 7.0.3-custom.10-beta.1)
+- Albums tab: long-press albums, open the three-dot menu and tap "Hide artist's albums". Choose
+  "Until I unhide", 1 day, 1 week, 1 month (30 days), or a custom number of days (1 to 365, slider
+  with a typed box). Every album by those albums' album artists disappears from the Albums tab.
+  Timed hides end on their own the next time the Albums tab loads after the time is up.
+- Albums tab: "Unhide artists" appears in the top-bar three-dot menu while any artist is hidden.
+  It lists the hidden artists with their end time; unhide the ticked ones or all of them.
+- Hiding only changes the Albums tab grid. Songs, Artists, playlists, search and shuffle are not
+  affected.
+
 ### Fixed (branch `fix/true-random-shuffle`, versionCode 10724, 7.0.3-custom.8-beta.1)
 - The shuffle button on the Albums and Artists tabs now shuffles all songs with the chosen shuffle
   mode, also with True random. Before, with True random it kept upstream's behavior: albums (or

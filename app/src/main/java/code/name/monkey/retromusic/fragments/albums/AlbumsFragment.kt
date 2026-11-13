@@ -28,7 +28,12 @@ import code.name.monkey.retromusic.fragments.GridStyle
 import code.name.monkey.retromusic.fragments.ReloadType
 import code.name.monkey.retromusic.fragments.base.AbsRecyclerViewCustomGridSizeFragment
 import code.name.monkey.retromusic.helper.SortOrder.AlbumSortOrder
+import code.name.monkey.retromusic.extensions.showToast
 import code.name.monkey.retromusic.interfaces.IAlbumClickListener
+import code.name.monkey.retromusic.model.Album
+import code.name.monkey.retromusic.util.ArtistSeparator
+import code.name.monkey.retromusic.util.HiddenAlbumArtists
+import code.name.monkey.retromusic.util.HiddenAlbumArtistsStore
 import code.name.monkey.retromusic.util.PreferenceUtil
 import code.name.monkey.retromusic.util.RetroUtil
 
@@ -38,10 +43,55 @@ class AlbumsFragment : AbsRecyclerViewCustomGridSizeFragment<AlbumAdapter, GridL
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         libraryViewModel.getAlbums().observe(viewLifecycleOwner) {
-            if (it.isNotEmpty())
-                adapter?.swapDataSet(it)
-            else
-                adapter?.swapDataSet(listOf())
+            allAlbums = it ?: listOf()
+            showAlbums()
+        }
+    }
+
+    /** Every album from the library, before hidden artists are filtered out. */
+    private var allAlbums: List<Album> = listOf()
+
+    /** Whether the top-bar menu currently shows "Unhide artists". */
+    private var menuShowsUnhide = false
+
+    /** Shows [allAlbums] minus hidden artists' albums. Expired hides are dropped here. */
+    private fun showAlbums() {
+        val hidden = HiddenAlbumArtistsStore.loadActive(requireContext())
+        val keys = hidden.map { it.key }.toSet()
+        val visible = if (keys.isEmpty()) allAlbums else allAlbums.filterNot {
+            HiddenAlbumArtists.isHidden(it.albumArtist, it.artistName, keys)
+        }
+        adapter?.swapDataSet(visible)
+        if (menuShowsUnhide != hidden.isNotEmpty()) requireActivity().invalidateMenu()
+    }
+
+    private fun hideArtistsOf(selection: List<Album>) {
+        val names = LinkedHashMap<String, String>()
+        selection.flatMap { HiddenAlbumArtists.artistsFor(it.albumArtist, it.artistName) }
+            .forEach { names.putIfAbsent(ArtistSeparator.key(it), it) }
+        if (names.isEmpty()) return
+        showHideArtistAlbumsDialog(names.values.toList()) { days ->
+            val context = context ?: return@showHideArtistAlbumsDialog
+            val now = System.currentTimeMillis()
+            val updated = HiddenAlbumArtists.add(
+                HiddenAlbumArtistsStore.loadActive(context, now),
+                names.values,
+                HiddenAlbumArtists.untilFor(days, now)
+            )
+            HiddenAlbumArtistsStore.save(context, updated)
+            context.showToast(getString(R.string.hidden_artist_albums_done, names.values.joinToString(", ")))
+            if (view != null) showAlbums()
+        }
+    }
+
+    private fun showUnhideDialog() {
+        showUnhideArtistsDialog(HiddenAlbumArtistsStore.loadActive(requireContext())) { keys ->
+            val context = context ?: return@showUnhideArtistsDialog
+            HiddenAlbumArtistsStore.save(
+                context,
+                HiddenAlbumArtists.remove(HiddenAlbumArtistsStore.loadActive(context), keys)
+            )
+            if (view != null) showAlbums()
         }
     }
 
@@ -72,7 +122,7 @@ class AlbumsFragment : AbsRecyclerViewCustomGridSizeFragment<AlbumAdapter, GridL
             dataSet,
             itemLayoutRes(),
             this
-        )
+        ).also { it.onHideArtists = ::hideArtistsOf }
     }
 
     override fun setGridSize(gridSize: Int) {
@@ -148,6 +198,12 @@ class AlbumsFragment : AbsRecyclerViewCustomGridSizeFragment<AlbumAdapter, GridL
         setUpSortOrderMenu(menu.findItem(R.id.action_sort_order).subMenu!!)
         //Setting up cast button
         requireContext().setUpMediaRouteButton(menu)
+        // "Unhide artists" only while at least one artist's albums are hidden.
+        menuShowsUnhide = HiddenAlbumArtistsStore.loadActive(requireContext()).isNotEmpty()
+        if (menuShowsUnhide) {
+            menu.add(Menu.NONE, R.id.action_unhide_artists, 50, R.string.action_unhide_artists)
+                .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
+        }
     }
 
     private fun setUpSortOrderMenu(
@@ -253,6 +309,10 @@ class AlbumsFragment : AbsRecyclerViewCustomGridSizeFragment<AlbumAdapter, GridL
     }
 
     override fun onMenuItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == R.id.action_unhide_artists) {
+            showUnhideDialog()
+            return true
+        }
         if (handleGridSizeMenuItem(item)) {
             return true
         }

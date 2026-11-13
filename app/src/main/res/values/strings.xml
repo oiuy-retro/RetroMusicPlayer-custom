@@ -608,4 +608,19 @@
     <string name="pref_title_shuffle_skip_counts">Skipped songs count as played</string>
     <string name="pref_summary_shuffle_skip_counts">For No repeats. Otherwise a song counts once over half of it has played.</string>
     <string name="shuffle_settings_apply_note">Changes apply the next time you turn shuffle on or start a shuffled queue</string>
+    <string name="action_hide_artist_albums">Hide artist\'s albums</string>
+    <string name="hide_artist_albums_message">Hides albums by %s from the Albums tab. Their songs stay in Songs, Artists, playlists, search and shuffle.</string>
+    <string name="hide_until_unhide">Until I unhide</string>
+    <string name="hide_one_day">1 day</string>
+    <string name="hide_one_week">1 week</string>
+    <string name="hide_one_month">1 month (30 days)</string>
+    <string name="hide_custom_days">Custom number of days</string>
+    <string name="hide_days_unit">days</string>
+    <string name="action_hide">Hide</string>
+    <string name="hidden_artist_albums_done">Hid albums by %s</string>
+    <string name="action_unhide_artists">Unhide artists</string>
+    <string name="unhide_selected">Unhide selected</string>
+    <string name="unhide_all">Unhide all</string>
+    <string name="hidden_artist_until_unhidden">%s (until unhidden)</string>
+    <string name="hidden_artist_until_date">%1$s (until %2$s)</string>
 </resources>
