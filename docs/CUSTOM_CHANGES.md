@@ -391,12 +391,36 @@ Options for all modes:
 - Library data for Weighted and Genre blocks is read when shuffle starts, which can take a moment
   on large libraries.
 
+## Hide artist's albums (Albums tab)
 
-## 11. Loudness normalization (branch `feature/loudness-normalization`)
+- **Files**: `util/HiddenAlbumArtists.kt` (pure rules, unit tested in `HiddenAlbumArtistsTest`),
+  `util/HiddenAlbumArtistsStore.kt` (storage), `fragments/albums/HideArtistsDialogs.kt` and
+  `res/layout/dialog_hide_artist_albums.xml` (the two dialogs), `AlbumsFragment.kt` (filtering
+  and menus), `AlbumAdapter.kt` (selection menu item, only when `onHideArtists` is set, so other
+  album lists such as artist details and Home don't get it).
+- **Which artist**: an album's album artist tag, or its track artist when the album artist tag is
+  empty; the same name the grid shows under each album. It's split like the library splits
+  artists, on `;` only (`ArtistSeparator.splitLibrary`), and matched case-insensitively. An album
+  is hidden when any of its artists is hidden, so hiding Artist A also hides an
+  "Artist A; Artist B" album. Albums whose album artist is someone else (for example
+  "Various Artists") stay visible even if Artist A sings on them.
+- **Storage**: SharedPreferences file `hidden_album_artists`, key `artists`, a JSON array of
+  `{"name": ..., "until": ...}` where `until` is the end time in ms since 1970 (UTC) and 0 means
+  until unhidden. Hiding an artist that's already hidden replaces its end time. No database change.
+- **Expiry**: checked whenever the Albums tab shows its albums (on load and on every return to the
+  tab) and when its menu is built. Expired entries are removed from storage then. There is no
+  background job, so the albums come back the next time the tab loads after the end time.
+- **Menus**: the selection (long-press) menu gets "Hide artist's albums" in its overflow. The
+  normal top-bar menu gets "Unhide artists" only while the stored list has an unexpired entry.
+- **Custom days**: Material slider 1 to 365 (default 14) with `SliderHaptics.attach` (one tick per
+  day while dragging) and a typed box using `SliderInput.parse` (clamped to 1 to 365, invalid input
+  goes back to the slider's value).
+
+## Loudness normalization
 
 - Settings → Loudness: import/export portable JSON (pinned to jellyfin-loudness-exporter@952392ae),
   on-phone EBU R128 scan (libebur128), strength / max cut sliders with typed boxes and haptics,
   optional daily schedule, attenuation-only playback (positive boost disabled).
-- Room table `LoudnessEntity` (DB v25). This branch is at versionCode 10727 and includes main's
-  True random fix (10724).
+- Room table `LoudnessEntity` (DB v25). Merged to main at versionCode 10727 (PR #9) without song-hash
+  matching, which is still in PR #7.
 - Details: `docs/loudness/`.

@@ -15,7 +15,9 @@
 package code.name.monkey.retromusic.adapter.album
 
 import android.content.res.ColorStateList
+import android.view.ActionMode
 import android.view.LayoutInflater
+import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
@@ -49,8 +51,23 @@ open class AlbumAdapter(
     R.menu.menu_media_selection
 ), PopupTextProvider {
 
+    /**
+     * When set (Albums tab only), the selection menu gets "Hide artist's albums", which passes
+     * the selected albums here.
+     */
+    var onHideArtists: ((List<Album>) -> Unit)? = null
+
     init {
         this.setHasStableIds(true)
+    }
+
+    override fun onCreateActionMode(mode: ActionMode?, menu: Menu?): Boolean {
+        val result = super.onCreateActionMode(mode, menu)
+        if (onHideArtists != null) {
+            menu?.add(Menu.NONE, R.id.action_hide_artist_albums, 100, R.string.action_hide_artist_albums)
+                ?.setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
+        }
+        return result
     }
 
     fun swapDataSet(dataSet: List<Album>) {
@@ -144,6 +161,10 @@ open class AlbumAdapter(
         menuItem: MenuItem,
         selection: List<Album>
     ) {
+        if (menuItem.itemId == R.id.action_hide_artist_albums) {
+            onHideArtists?.invoke(selection)
+            return
+        }
         SongsMenuHelper.handleMenuClick(activity, getSongList(selection), menuItem.itemId)
     }
 
