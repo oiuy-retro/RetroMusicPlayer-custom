@@ -17,6 +17,7 @@ import androidx.media.AudioFocusRequestCompat
 import androidx.media.AudioManagerCompat
 import code.name.monkey.retromusic.R
 import code.name.monkey.retromusic.extensions.showToast
+import code.name.monkey.retromusic.loudness.LoudnessPlaybackState
 import code.name.monkey.retromusic.service.playback.Playback
 import code.name.monkey.retromusic.util.PreferenceUtil.isAudioFocusEnabled
 import code.name.monkey.retromusic.util.PreferenceUtil.isResumeAfterFocusLossEnabled
@@ -37,7 +38,8 @@ abstract class AudioManagerPlayback(val context: Context) : Playback {
     protected var requestedVolume: Float = Volume.NORMAL
 
     /** [vol] scaled by the player gain, so fades and ducking never exceed the user's level. */
-    protected fun scaledVolume(vol: Float): Float = (vol * playerGain).coerceIn(0f, 1f)
+    protected fun scaledVolume(vol: Float): Float =
+        (vol * playerGain * LoudnessPlaybackState.attenuationLinear.coerceIn(0f, 1f)).coerceIn(0f, 1f)
 
     override fun setPlayerGain(gain: Float) {
         playerGain = gain.coerceIn(0f, 1f)
@@ -46,6 +48,11 @@ abstract class AudioManagerPlayback(val context: Context) : Playback {
 
     /** Re-apply the current volume after [playerGain] changed. */
     protected abstract fun onPlayerGainChanged()
+
+    /** Re-apply volume after loudness attenuation changed. */
+    fun onLoudnessAttenuationChanged() {
+        onPlayerGainChanged()
+    }
     private var isPausedByTransientLossOfFocus = false
 
     /**
