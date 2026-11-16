@@ -416,3 +416,11 @@ Options for all modes:
   day while dragging) and a typed box using `SliderInput.parse` (clamped to 1 to 365, invalid input
   goes back to the slider's value).
 
+## Loudness normalization
+
+- Settings → Loudness: import/export portable JSON (pinned to jellyfin-loudness-exporter@952392ae),
+  on-phone EBU R128 scan (libebur128), strength / max cut sliders with typed boxes and haptics,
+  optional daily schedule, attenuation-only playback (positive boost disabled).
+- Room table `LoudnessEntity` (DB v25). Merged to main at versionCode 10727 (PR #9) without song-hash
+  matching, which is still in PR #7.
+- Details: `docs/loudness/`.

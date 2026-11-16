@@ -11,6 +11,11 @@ shared as APK files. For changes in the app itself, see the
 
 ## [Unreleased]
 
+### Changed (branch `feature/hide-artist-albums`, versionCode 10730, 7.0.3-custom.10-beta.2)
+- Merged current main, which now includes loudness normalization without song hashes
+  (7.0.3-custom.9-beta.1), so this build has both features. versionCode 10730 installs over
+  every earlier test build.
+
 ### Added (branch `feature/hide-artist-albums`, versionCode 10728, 7.0.3-custom.10-beta.1)
 - Albums tab: long-press albums, open the three-dot menu and tap "Hide artist's albums". Choose
   "Until I unhide", 1 day, 1 week, 1 month (30 days), or a custom number of days (1 to 365, slider
@@ -20,6 +25,17 @@ shared as APK files. For changes in the app itself, see the
   It lists the hidden artists with their end time; unhide the ticked ones or all of them.
 - Hiding only changes the Albums tab grid. Songs, Artists, playlists, search and shuffle are not
   affected.
+
+### Changed (branch `feature/loudness-normalization`, versionCode 10727, 7.0.3-custom.9-beta.1)
+- Merged current main (True random fix, versionCode 10724) into this branch so loudness
+  normalization can be installed as an update on top of the latest main build. Playback remains
+  attenuation-only; album LUFS scanning is not implemented.
+
+### Changed (branch `feature/loudness-normalization`, versionCode 10726)
+- Loudness self-audit: exact rootId+relativePath match only (no path-suffix fallback); attenuation-only playback (no LoudnessEnhancer boost); MediaCodec scanner hardened (PCM float/16, format-change, cancel, incremental skip); Android producer fields documented as additive RESERVED (not frozen).
+
+### Added (branch `feature/loudness-normalization`, versionCode 10725)
+- Loudness normalization: JSON import/export, on-phone EBU R128 scan, strength/schedule controls.
 
 ### Fixed (branch `fix/true-random-shuffle`, versionCode 10724, 7.0.3-custom.8-beta.1)
 - The shuffle button on the Albums and Artists tabs now shuffles all songs with the chosen shuffle

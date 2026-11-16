@@ -106,6 +106,18 @@ import code.name.monkey.retromusic.util.PreferenceUtil.isLockScreen
 import code.name.monkey.retromusic.util.PreferenceUtil.isPauseOnZeroVolume
 import code.name.monkey.retromusic.util.PreferenceUtil.playbackPitch
 import code.name.monkey.retromusic.util.PreferenceUtil.playbackSpeed
+import code.name.monkey.retromusic.db.LoudnessDao
+import code.name.monkey.retromusic.loudness.CollisionKey
+import code.name.monkey.retromusic.loudness.LoudnessController
+import code.name.monkey.retromusic.loudness.LoudnessRepository
+import code.name.monkey.retromusic.LOUDNESS_ENABLED
+import code.name.monkey.retromusic.LOUDNESS_STRENGTH
+import code.name.monkey.retromusic.LOUDNESS_MAX_BOOST_DB
+import code.name.monkey.retromusic.LOUDNESS_MAX_CUT_DB
+import code.name.monkey.retromusic.LOUDNESS_PREFER_ALBUM
+import code.name.monkey.retromusic.LOUDNESS_SCHEDULE_ENABLED
+import code.name.monkey.retromusic.LOUDNESS_SCHEDULE_START
+import code.name.monkey.retromusic.LOUDNESS_SCHEDULE_END
 import code.name.monkey.retromusic.util.PreferenceUtil
 import code.name.monkey.retromusic.util.PreferenceUtil.registerOnSharedPreferenceChangedListener
 import code.name.monkey.retromusic.util.PreferenceUtil.unregisterOnSharedPreferenceChangedListener
@@ -307,6 +319,8 @@ class MusicService : MediaBrowserServiceCompat(),
     private var wakeLock: WakeLock? = null
     private var notificationManager: NotificationManager? = null
     private var isForeground = false
+    private lateinit var loudnessController: LoudnessController
+    private var loudnessScheduleRunnable: Runnable? = null
     override fun onCreate() {
         super.onCreate()
         ResumeLog.init(this)
@@ -321,6 +335,11 @@ class MusicService : MediaBrowserServiceCompat(),
 
         playbackManager = PlaybackManager(this)
         playbackManager.setCallbacks(this)
+        runCatching { CollisionKey.ensureLoaded(this) }
+        loudnessController = LoudnessController(
+            LoudnessRepository(get(LoudnessDao::class.java)),
+            serviceScope,
+        )
         setupMediaSession()
 
         uiThreadHandler = Handler(Looper.getMainLooper())
@@ -381,6 +400,8 @@ class MusicService : MediaBrowserServiceCompat(),
         if (audioDeviceCallback != null) {
             getSystemService<AudioManager>()?.unregisterAudioDeviceCallback(audioDeviceCallback!!)
         }
+        loudnessScheduleRunnable?.let { uiThreadHandler?.removeCallbacks(it) }
+        if (this::loudnessController.isInitialized) loudnessController.releaseEnhancer()
         ResumeLog.d("service destroyed (resumePending=${playbackManager.isResumePending})")
         mediaSession?.isActive = false
         quit()
@@ -741,7 +762,30 @@ class MusicService : MediaBrowserServiceCompat(),
             ALBUM_ART_ON_LOCK_SCREEN, BLURRED_ALBUM_ART -> updateMediaSessionMetaData(::updateMediaSessionPlaybackState)
 
             TOGGLE_HEADSET -> registerHeadsetEvents()
+
+            LOUDNESS_ENABLED, LOUDNESS_STRENGTH, LOUDNESS_MAX_BOOST_DB, LOUDNESS_MAX_CUT_DB,
+            LOUDNESS_PREFER_ALBUM, LOUDNESS_SCHEDULE_ENABLED, LOUDNESS_SCHEDULE_START,
+            LOUDNESS_SCHEDULE_END -> {
+                loudnessController.refreshForSong(currentSong) {
+                    playbackManager.onLoudnessAttenuationChanged()
+                }
+                scheduleLoudnessBoundaryCheck()
+            }
         }
+    }
+
+    private fun scheduleLoudnessBoundaryCheck() {
+        val handler = uiThreadHandler ?: return
+        loudnessScheduleRunnable?.let { handler.removeCallbacks(it) }
+        if (!PreferenceUtil.loudnessEnabled || !PreferenceUtil.loudnessScheduleEnabled) return
+        val r = Runnable {
+            loudnessController.refreshForSong(currentSong) {
+                playbackManager.onLoudnessAttenuationChanged()
+            }
+            scheduleLoudnessBoundaryCheck()
+        }
+        loudnessScheduleRunnable = r
+        handler.postDelayed(r, 60_000L)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -1329,6 +1373,12 @@ class MusicService : MediaBrowserServiceCompat(),
             false
         }
         playbackManager.setDataSource(currentSong, force) { success ->
+            if (success) {
+                loudnessController.onAudioSession(playbackManager.audioSessionId)
+                loudnessController.refreshForSong(currentSong) {
+                    playbackManager.onLoudnessAttenuationChanged()
+                }
+            }
             completion(success)
         }
     }

@@ -75,6 +75,16 @@ import code.name.monkey.retromusic.NOW_PLAYING_SCREEN_ID
 import code.name.monkey.retromusic.PAUSE_HISTORY
 import code.name.monkey.retromusic.PAUSE_ON_ZERO_VOLUME
 import code.name.monkey.retromusic.PLAYER_VOLUME
+import code.name.monkey.retromusic.LOUDNESS_ENABLED
+import code.name.monkey.retromusic.LOUDNESS_STRENGTH
+import code.name.monkey.retromusic.LOUDNESS_MAX_BOOST_DB
+import code.name.monkey.retromusic.LOUDNESS_MAX_CUT_DB
+import code.name.monkey.retromusic.LOUDNESS_PREFER_ALBUM
+import code.name.monkey.retromusic.LOUDNESS_SCHEDULE_ENABLED
+import code.name.monkey.retromusic.LOUDNESS_SCHEDULE_START
+import code.name.monkey.retromusic.LOUDNESS_SCHEDULE_END
+import code.name.monkey.retromusic.LOUDNESS_ROOT_ID
+import code.name.monkey.retromusic.LOUDNESS_ROOT_URI
 import code.name.monkey.retromusic.PLAYBACK_PITCH
 import code.name.monkey.retromusic.PLAYBACK_SPEED
 import code.name.monkey.retromusic.PLAYLIST_GRID_SIZE
@@ -879,6 +889,46 @@ object PreferenceUtil {
 
     val swipeDownToDismiss
         get() = sharedPreferences.getBoolean(SWIPE_DOWN_DISMISS, true)
+
+    var loudnessEnabled: Boolean
+        get() = sharedPreferences.getBoolean(LOUDNESS_ENABLED, false)
+        set(value) = sharedPreferences.edit { putBoolean(LOUDNESS_ENABLED, value) }
+
+    var loudnessStrength: Int
+        get() = sharedPreferences.getInt(LOUDNESS_STRENGTH, 100).coerceIn(0, 100)
+        set(value) = sharedPreferences.edit { putInt(LOUDNESS_STRENGTH, value.coerceIn(0, 100)) }
+
+    var loudnessMaxBoostDb: Int
+        get() = sharedPreferences.getInt(LOUDNESS_MAX_BOOST_DB, 0).coerceIn(0, 12)
+        set(value) = sharedPreferences.edit { putInt(LOUDNESS_MAX_BOOST_DB, value.coerceIn(0, 12)) }
+
+    var loudnessMaxCutDb: Int
+        get() = sharedPreferences.getInt(LOUDNESS_MAX_CUT_DB, 20).coerceIn(0, 30)
+        set(value) = sharedPreferences.edit { putInt(LOUDNESS_MAX_CUT_DB, value.coerceIn(0, 30)) }
+
+    var loudnessPreferAlbum: Boolean
+        get() = sharedPreferences.getBoolean(LOUDNESS_PREFER_ALBUM, false)
+        set(value) = sharedPreferences.edit { putBoolean(LOUDNESS_PREFER_ALBUM, value) }
+
+    var loudnessScheduleEnabled: Boolean
+        get() = sharedPreferences.getBoolean(LOUDNESS_SCHEDULE_ENABLED, false)
+        set(value) = sharedPreferences.edit { putBoolean(LOUDNESS_SCHEDULE_ENABLED, value) }
+
+    var loudnessScheduleStart: String
+        get() = sharedPreferences.getString(LOUDNESS_SCHEDULE_START, "22:00") ?: "22:00"
+        set(value) = sharedPreferences.edit { putString(LOUDNESS_SCHEDULE_START, value) }
+
+    var loudnessScheduleEnd: String
+        get() = sharedPreferences.getString(LOUDNESS_SCHEDULE_END, "07:00") ?: "07:00"
+        set(value) = sharedPreferences.edit { putString(LOUDNESS_SCHEDULE_END, value) }
+
+    var loudnessRootId: String
+        get() = sharedPreferences.getString(LOUDNESS_ROOT_ID, "music") ?: "music"
+        set(value) = sharedPreferences.edit { putString(LOUDNESS_ROOT_ID, value) }
+
+    var loudnessRootUri: String
+        get() = sharedPreferences.getString(LOUDNESS_ROOT_URI, "") ?: ""
+        set(value) = sharedPreferences.edit { putString(LOUDNESS_ROOT_URI, value) }
 }
 
 enum class CoverLyricsType {
