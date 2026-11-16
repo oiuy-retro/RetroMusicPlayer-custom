@@ -11,7 +11,7 @@ A personal build of Retro Music Player with a player-only volume slider, volume 
 > The original upstream README is kept in [docs/UPSTREAM_README.md](docs/UPSTREAM_README.md).
 
 - Based on upstream `dev` at commit `a7d4d05` (6 commits after the `v7.0.3` tag).
-- App version: **7.0.3** (version name unchanged), current custom versionCode **10705**.
+- App version: **7.0.3** (version name unchanged), current custom versionCode **10730**.
 - Flavor: **fdroid** (no Google Play services, billing or Chromecast).
 - See [CHANGELOG.md](CHANGELOG.md) for the history of the custom releases.
 
